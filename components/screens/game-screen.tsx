@@ -56,6 +56,7 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
   const [progress, setProgress] = useState(0)
   const [revealed, setRevealed] = useState(false)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
+  const [holding, setHolding] = useState(false) // reflects the player's ACTUAL press
 
   const holdingRef = useRef(false)
   const rafRef = useRef(0)
@@ -115,6 +116,7 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
       stopRaf()
       clearRevealTimer()
       holdingRef.current = false
+      setHolding(false)
       setRevealed(true)
       if (!soloCurrent) return
       const flies = soloCurrent.flies
@@ -183,6 +185,7 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
     shownResultRef.current = -1
     setOutcome(null)
     setProgress(0)
+    setHolding(false) // each round starts not-held — player presses to hold
     setPhase('live')
     const obj = GAME_OBJECTS.find((o) => o.id === r.objectId)
     const clientEnd = r.endsAt - room.clockOffset
@@ -236,11 +239,14 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
   // ── input handlers ──────────────────────────────────────────────────────────
   const handlePress = () => {
     if (isRoom) {
+      if (phase !== 'live') return // only meaningful during a live round
       holdingRef.current = true
+      setHolding(true)
       return
     }
     if (phase === 'arm') {
       holdingRef.current = true
+      setHolding(true)
       startRef.current = performance.now()
       setPhase('live')
       setProgress(0)
@@ -251,6 +257,7 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
   }
 
   const handleRelease = () => {
+    setHolding(false)
     if (isRoom) {
       if (phase === 'live' && holdingRef.current && !postedRef.current && room?.round) {
         postedRef.current = true
@@ -466,7 +473,9 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
                 animate={{ opacity: 1 }}
                 className="text-center font-semibold text-muted-foreground"
               >
-                Release if it flies · keep holding if it can&apos;t
+                {holding
+                  ? 'Release if it flies · keep holding if it can’t'
+                  : 'Press & hold the button — then release if it flies'}
               </motion.p>
             )}
             {phase === 'arm' && !waitingForRound && (
@@ -498,12 +507,12 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
           transition={phase === 'live' ? { duration: 0.8, repeat: Number.POSITIVE_INFINITY } : {}}
           className={cn(
             'flex h-28 w-full touch-none items-center justify-center gap-3 rounded-[2rem] font-heading text-2xl font-bold shadow-xl transition-colors disabled:opacity-60',
-            phase === 'live'
+            holding
               ? 'bg-foreground text-background shadow-foreground/30'
               : 'bg-primary text-primary-foreground shadow-primary/40',
           )}
         >
-          {phase === 'live' ? (
+          {holding ? (
             <>
               <Hand className="size-8" />
               HOLDING…
