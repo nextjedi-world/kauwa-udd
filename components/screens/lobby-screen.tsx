@@ -1,11 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Check, Copy, Crown, Megaphone, Eye, Users, Rocket } from 'lucide-react'
+import {
+  ArrowLeft,
+  Check,
+  Copy,
+  Crown,
+  Megaphone,
+  Eye,
+  Users,
+  Rocket,
+  Loader2,
+  Hourglass,
+} from 'lucide-react'
 import { Logo } from '@/components/brand/logo'
-import { TactileLink } from '@/components/brand/tactile-button'
+import { TactileButton } from '@/components/brand/tactile-button'
 import { Slider } from '@/components/ui/slider'
 import {
   Select,
@@ -14,27 +25,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { LANGUAGES, MOCK_PLAYERS, generateRoomCode } from '@/lib/game-data'
+import { LANGUAGES } from '@/lib/game-data'
+import type {
+  GameSettings,
+  RoomPlayer,
+  GameMode,
+  AnnounceMode,
+  EliminationInterval,
+} from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 function Segmented<T extends string>({
   options,
   value,
   onChange,
+  disabled,
 }: {
   options: { value: T; label: string; icon?: React.ReactNode }[]
   value: T
   onChange: (v: T) => void
+  disabled?: boolean
 }) {
   return (
-    <div className="flex rounded-2xl bg-secondary p-1">
+    <div className={cn('flex rounded-2xl bg-secondary p-1', disabled && 'opacity-60')}>
       {options.map((opt) => {
         const active = opt.value === value
         return (
           <button
             key={opt.value}
+            disabled={disabled}
             onClick={() => onChange(opt.value)}
-            className="relative flex-1 rounded-xl px-3 py-2 text-sm font-semibold"
+            className="relative flex-1 rounded-xl px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed"
           >
             {active && (
               <motion.span
@@ -59,29 +80,47 @@ function Segmented<T extends string>({
   )
 }
 
-export function LobbyScreen() {
-  const [roomCode, setRoomCode] = useState('•••••')
-  useEffect(() => setRoomCode(generateRoomCode()), [])
+export interface LobbyScreenProps {
+  code: string
+  players: RoomPlayer[]
+  settings: GameSettings
+  hostId: string
+  playerId: string
+  onlineIds: Set<string>
+  connected: boolean
+  starting?: boolean
+  onChangeSettings: (partial: Partial<GameSettings>) => void
+  onChangeLanguage: (lang: string) => void
+  onStart: () => void
+}
+
+export function LobbyScreen({
+  code,
+  players,
+  settings,
+  hostId,
+  playerId,
+  onlineIds,
+  connected,
+  starting,
+  onChangeSettings,
+  onChangeLanguage,
+  onStart,
+}: LobbyScreenProps) {
   const [copied, setCopied] = useState(false)
-  const [rounds, setRounds] = useState(20)
-  const [mode, setMode] = useState<'classic' | 'elimination'>('classic')
-  const [interval, setIntervalRounds] = useState<3 | 5 | 10>(5)
-  const [announce, setAnnounce] = useState<'voice' | 'visual'>('voice')
-  const [langs, setLangs] = useState<Record<string, string>>(
-    Object.fromEntries(MOCK_PLAYERS.map((p) => [p.id, 'en'])),
-  )
+  const isHost = playerId === hostId
+  const isOnline = (p: RoomPlayer) => onlineIds.has(p.id) || p.online
+  const onlineCount = players.filter(isOnline).length
 
   const copyCode = async () => {
     try {
-      await navigator.clipboard.writeText(roomCode)
+      await navigator.clipboard.writeText(code)
     } catch {
       /* ignore */
     }
     setCopied(true)
     setTimeout(() => setCopied(false), 1600)
   }
-
-  const onlineCount = MOCK_PLAYERS.filter((p) => p.online).length
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-28 pt-6">
@@ -94,14 +133,23 @@ export function LobbyScreen() {
           <ArrowLeft className="size-5" />
         </Link>
         <Logo size="sm" />
-        <div className="size-10" />
+        <div
+          className={cn(
+            'flex h-10 items-center gap-1.5 rounded-2xl px-3 text-xs font-bold',
+            connected ? 'bg-success/15 text-success' : 'bg-secondary text-muted-foreground',
+          )}
+          title={connected ? 'Realtime connected' : 'Connecting…'}
+        >
+          <span className={cn('size-2 rounded-full', connected ? 'bg-success' : 'bg-muted-foreground/50')} />
+          {connected ? 'Live' : '…'}
+        </div>
       </header>
 
       {/* Room code */}
       <section className="mt-5 rounded-3xl bg-primary p-5 text-primary-foreground shadow-lg shadow-primary/30">
         <p className="text-sm font-semibold opacity-80">Room code · share to invite</p>
         <div className="mt-2 flex items-center justify-between gap-3">
-          <span className="font-mono text-4xl font-bold tracking-[0.3em]">{roomCode}</span>
+          <span className="font-mono text-4xl font-bold tracking-[0.3em]">{code}</span>
           <button
             onClick={copyCode}
             className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary-foreground/15 transition-colors hover:bg-primary-foreground/25"
@@ -124,45 +172,59 @@ export function LobbyScreen() {
             {onlineCount} online
           </span>
         </div>
-        <div className="grid grid-cols-4 gap-3">
-          {MOCK_PLAYERS.map((p, i) => (
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.05, type: 'spring', stiffness: 300, damping: 18 }}
-              className="flex flex-col items-center gap-1.5"
-            >
-              <div className="relative">
-                <div
-                  className={cn(
-                    'grid size-14 place-items-center rounded-2xl bg-card text-3xl shadow-sm ring-2',
-                    p.isYou ? 'ring-primary' : 'ring-border',
-                    !p.online && 'opacity-40 grayscale',
-                  )}
+        {players.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+            Waiting for players to join…
+          </p>
+        ) : (
+          <div className="grid grid-cols-4 gap-3">
+            {players.map((p, i) => {
+              const online = isOnline(p)
+              return (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.05, type: 'spring', stiffness: 300, damping: 18 }}
+                  className="flex flex-col items-center gap-1.5"
                 >
-                  {p.avatar}
-                </div>
-                {p.isHost && (
-                  <span className="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-accent text-accent-foreground shadow">
-                    <Crown className="size-3.5" />
+                  <div className="relative">
+                    <div
+                      className={cn(
+                        'grid size-14 place-items-center rounded-2xl bg-card text-3xl shadow-sm ring-2',
+                        p.id === playerId ? 'ring-primary' : 'ring-border',
+                        !online && 'opacity-40 grayscale',
+                      )}
+                    >
+                      {p.avatar}
+                    </div>
+                    {p.id === hostId && (
+                      <span className="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-accent text-accent-foreground shadow">
+                        <Crown className="size-3.5" />
+                      </span>
+                    )}
+                    {online && (
+                      <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full border-2 border-card bg-success" />
+                    )}
+                  </div>
+                  <span className="max-w-full truncate text-xs font-semibold">
+                    {p.id === playerId ? 'You' : p.name}
                   </span>
-                )}
-                {p.online && (
-                  <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full border-2 border-card bg-success" />
-                )}
-              </div>
-              <span className="max-w-full truncate text-xs font-semibold">{p.name}</span>
-            </motion.div>
-          ))}
-        </div>
+                </motion.div>
+              )
+            })}
+          </div>
+        )}
       </section>
 
-      {/* Host settings */}
+      {/* Settings */}
       <section className="mt-6 space-y-4">
         <div className="flex items-center gap-2">
           <Crown className="size-4 text-accent" />
-          <h2 className="font-heading text-lg font-semibold">Host settings</h2>
+          <h2 className="font-heading text-lg font-semibold">
+            {isHost ? 'Host settings' : 'Match settings'}
+          </h2>
+          {!isHost && <span className="text-xs text-muted-foreground">· set by host</span>}
         </div>
 
         {/* Rounds slider */}
@@ -170,15 +232,19 @@ export function LobbyScreen() {
           <div className="flex items-center justify-between">
             <label className="font-semibold">Rounds</label>
             <span className="rounded-full bg-primary px-3 py-1 font-mono text-sm font-bold text-primary-foreground">
-              {rounds}
+              {settings.rounds}
             </span>
           </div>
           <Slider
-            value={[rounds]}
+            value={[settings.rounds]}
             min={5}
             max={100}
             step={5}
-            onValueChange={(v) => setRounds(v[0])}
+            disabled={!isHost}
+            onValueChange={(v) => {
+              const next = Array.isArray(v) ? v[0] : v
+              if (typeof next === 'number') onChangeSettings({ rounds: next })
+            }}
             className="mt-4"
           />
           <div className="mt-2 flex justify-between text-xs text-muted-foreground">
@@ -187,34 +253,32 @@ export function LobbyScreen() {
           </div>
         </div>
 
-        {/* Mode toggle */}
+        {/* Mode */}
         <div className="rounded-3xl border border-border bg-card p-4 shadow-sm">
           <label className="font-semibold">Mode</label>
           <div className="mt-3">
             <Segmented
-              value={mode}
-              onChange={(v) => setMode(v as 'classic' | 'elimination')}
+              value={settings.mode}
+              disabled={!isHost}
+              onChange={(v) => onChangeSettings({ mode: v as GameMode })}
               options={[
                 { value: 'classic', label: 'Classic' },
                 { value: 'elimination', label: 'Elimination' },
               ]}
             />
           </div>
-          {mode === 'elimination' && (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-3"
-            >
+          {settings.mode === 'elimination' && (
+            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mt-3">
               <p className="mb-2 text-sm text-muted-foreground">Eliminate lowest every</p>
               <div className="flex gap-2">
                 {([3, 5, 10] as const).map((n) => (
                   <button
                     key={n}
-                    onClick={() => setIntervalRounds(n)}
+                    disabled={!isHost}
+                    onClick={() => onChangeSettings({ eliminationInterval: n as EliminationInterval })}
                     className={cn(
-                      'flex-1 rounded-2xl border py-2.5 text-sm font-bold transition-colors',
-                      interval === n
+                      'flex-1 rounded-2xl border py-2.5 text-sm font-bold transition-colors disabled:cursor-not-allowed',
+                      settings.eliminationInterval === n
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border bg-secondary text-muted-foreground',
                     )}
@@ -227,63 +291,89 @@ export function LobbyScreen() {
           )}
         </div>
 
-        {/* Announcement mode */}
+        {/* Announcements (per-room) */}
         <div className="rounded-3xl border border-border bg-card p-4 shadow-sm">
           <label className="font-semibold">Announcements</label>
-          <div className="mt-3">
-            <Segmented
-              value={announce}
-              onChange={(v) => setAnnounce(v as 'voice' | 'visual')}
-              options={[
-                { value: 'voice', label: 'Voice', icon: <Megaphone className="size-4" /> },
-                { value: 'visual', label: 'Visual', icon: <Eye className="size-4" /> },
-              ]}
-            />
-          </div>
+          <p className="mb-3 mt-0.5 text-sm text-muted-foreground">
+            Voice speaks the word; the image stays hidden until the last moment. Visual shows it right away.
+          </p>
+          <Segmented
+            value={settings.announce}
+            disabled={!isHost}
+            onChange={(v) => onChangeSettings({ announce: v as AnnounceMode })}
+            options={[
+              { value: 'voice', label: 'Voice', icon: <Megaphone className="size-4" /> },
+              { value: 'visual', label: 'Visual', icon: <Eye className="size-4" /> },
+            ]}
+          />
         </div>
 
-        {/* Per-player language */}
+        {/* Per-player language (each player picks their own) */}
         <div className="rounded-3xl border border-border bg-card p-4 shadow-sm">
           <label className="font-semibold">Player languages</label>
-          <p className="mb-3 mt-0.5 text-sm text-muted-foreground">Each player hears words in their own language.</p>
+          <p className="mb-3 mt-0.5 text-sm text-muted-foreground">
+            Each player hears words in their own language.
+          </p>
           <div className="space-y-2">
-            {MOCK_PLAYERS.filter((p) => p.online).map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="grid size-9 place-items-center rounded-xl bg-secondary text-xl">{p.avatar}</span>
-                  <span className="text-sm font-semibold">{p.name}</span>
+            {players.filter(isOnline).map((p) => {
+              const self = p.id === playerId
+              const lang = LANGUAGES.find((l) => l.code === p.language)
+              return (
+                <div key={p.id} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="grid size-9 place-items-center rounded-xl bg-secondary text-xl">
+                      {p.avatar}
+                    </span>
+                    <span className="text-sm font-semibold">{self ? 'You' : p.name}</span>
+                  </div>
+                  {self ? (
+                    <Select value={p.language} onValueChange={(v) => onChangeLanguage(v as string)}>
+                      <SelectTrigger className="h-10 w-36 rounded-xl">
+                        <SelectValue>
+                          {(value: string) => {
+                            const l = LANGUAGES.find((x) => x.code === value)
+                            return l ? `${l.flag} ${l.label}` : value
+                          }}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LANGUAGES.map((l) => (
+                          <SelectItem key={l.code} value={l.code}>
+                            {l.flag} {l.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="rounded-xl bg-secondary px-3 py-2 text-sm font-semibold text-muted-foreground">
+                      {lang ? `${lang.flag} ${lang.label}` : (p.language ?? 'en')}
+                    </span>
+                  )}
                 </div>
-                <Select
-                  value={langs[p.id]}
-                  onValueChange={(v) => setLangs((s) => ({ ...s, [p.id]: v }))}
-                >
-                  <SelectTrigger className="h-10 w-36 rounded-xl">
-                    <SelectValue>
-                      {(value: string) => {
-                        const l = LANGUAGES.find((x) => x.code === value)
-                        return l ? `${l.flag} ${l.label}` : value
-                      }}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LANGUAGES.map((l) => (
-                      <SelectItem key={l.code} value={l.code}>
-                        {l.flag} {l.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>
 
       {/* Start button (sticky) */}
       <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md bg-gradient-to-t from-background via-background to-transparent px-5 pb-6 pt-8">
-        <TactileLink href="/game" variant="primary" size="lg" icon={<Rocket className="size-6" />}>
-          Start Game
-        </TactileLink>
+        {isHost ? (
+          <TactileButton
+            variant="primary"
+            size="lg"
+            disabled={starting || onlineCount < 1}
+            onClick={onStart}
+            icon={starting ? <Loader2 className="size-6 animate-spin" /> : <Rocket className="size-6" />}
+          >
+            {starting ? 'Starting…' : 'Start Game'}
+          </TactileButton>
+        ) : (
+          <div className="flex h-16 items-center justify-center gap-2.5 rounded-3xl bg-secondary px-6 font-heading text-lg font-semibold text-muted-foreground">
+            <Hourglass className="size-5 animate-pulse" />
+            Waiting for host to start…
+          </div>
+        )}
       </div>
     </main>
   )

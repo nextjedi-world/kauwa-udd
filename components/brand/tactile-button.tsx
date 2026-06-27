@@ -32,10 +32,14 @@ export function TactileLink({
   size = 'md',
   icon,
   ...props
-}: ComponentProps<typeof Link> & {
+}: Omit<
+  ComponentProps<typeof Link>,
+  'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart' | 'children'
+> & {
   variant?: Variant
   size?: Size
   icon?: ReactNode
+  children?: ReactNode
 }) {
   return (
     <MotionLink
@@ -57,10 +61,11 @@ export function TactileButton({
   size = 'md',
   icon,
   ...props
-}: ComponentProps<typeof motion.button> & {
+}: Omit<ComponentProps<typeof motion.button>, 'children'> & {
   variant?: Variant
   size?: Size
   icon?: ReactNode
+  children?: ReactNode
 }) {
   return (
     <motion.button

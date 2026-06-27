@@ -1,11 +1,7 @@
-import { SkyBackdrop } from '@/components/brand/sky-backdrop'
-import { LobbyScreen } from '@/components/screens/lobby-screen'
+import { redirect } from 'next/navigation'
 
+// The standalone lobby is obsolete — rooms now live at /room/[code].
+// Kept as a redirect so old links / bookmarks land somewhere sensible.
 export default function LobbyPage() {
-  return (
-    <>
-      <SkyBackdrop />
-      <LobbyScreen />
-    </>
-  )
+  redirect('/')
 }

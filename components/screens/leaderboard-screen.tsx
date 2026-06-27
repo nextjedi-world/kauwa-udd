@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, Flame, Medal } from 'lucide-react'
+import { ArrowLeft, Flame, Medal, Loader2, AlertTriangle } from 'lucide-react'
 import { Logo } from '@/components/brand/logo'
-import { DAILY_LEADERS, WEEKLY_LEADERS, type LeaderEntry } from '@/lib/game-data'
+import { getLeaderboard } from '@/lib/api'
+import { type LeaderEntry } from '@/lib/game-data'
 import { cn } from '@/lib/utils'
 
 const MEDAL_COLORS = ['text-accent', 'text-muted-foreground', 'text-[oklch(0.62_0.12_45)]']
@@ -44,8 +45,34 @@ function Row({ e, i }: { e: LeaderEntry; i: number }) {
 
 export function LeaderboardScreen() {
   const [tab, setTab] = useState<'daily' | 'weekly'>('daily')
-  const data = tab === 'daily' ? DAILY_LEADERS : WEEKLY_LEADERS
-  const you = data.find((e) => e.isYou)
+  const [data, setData] = useState<LeaderEntry[]>([])
+  const [you, setYou] = useState<LeaderEntry | undefined>(undefined)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    getLeaderboard(tab)
+      .then((res) => {
+        if (cancelled) return
+        setData(res.entries ?? [])
+        setYou(res.you ?? res.entries?.find((e) => e.isYou))
+      })
+      .catch((e) => {
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : 'Could not load leaderboard')
+        setData([])
+        setYou(undefined)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [tab])
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-28 pt-6">
@@ -87,20 +114,36 @@ export function LeaderboardScreen() {
       </div>
 
       {/* List */}
-      <section className="mt-4 space-y-2">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={tab}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="space-y-2"
-          >
-            {data.map((e, i) => (
-              <Row key={`${tab}-${e.rank}`} e={e} i={i} />
-            ))}
-          </motion.div>
-        </AnimatePresence>
+      <section className="mt-4 min-h-40 space-y-2">
+        {loading ? (
+          <div className="grid place-items-center py-16 text-muted-foreground">
+            <Loader2 className="size-7 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border py-12 text-center text-muted-foreground">
+            <AlertTriangle className="size-6 text-destructive" />
+            <p className="font-semibold">{error}</p>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border py-12 text-center text-muted-foreground">
+            <p className="font-semibold">No scores yet</p>
+            <p className="text-sm">Be the first bird to take the sky!</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-2"
+            >
+              {data.map((e, i) => (
+                <Row key={`${tab}-${e.rank}-${e.name}`} e={e} i={i} />
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </section>
 
       {/* Your rank (sticky) */}
