@@ -41,7 +41,7 @@ export function HomeScreen() {
             animate={{ y: [0, -10, 0], rotate: [-6, 8, -6] }}
             transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
           >
-            🐦‍⬛
+            🐦
           </motion.span>
         </motion.div>
 

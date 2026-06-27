@@ -24,13 +24,13 @@ export type GameObject = {
 export const GAME_OBJECTS: GameObject[] = [
   {
     id: 'crow',
-    emoji: '🐦‍⬛',
+    emoji: '🐦',
     flies: true,
     words: { en: 'Crow', hi: 'कौआ', es: 'Cuervo', fr: 'Corbeau', pt: 'Corvo', ja: 'カラス' },
   },
   {
     id: 'sparrow',
-    emoji: '🐦',
+    emoji: '🐤',
     flies: true,
     words: { en: 'Sparrow', hi: 'चिड़िया', es: 'Gorrión', fr: 'Moineau', pt: 'Pardal', ja: 'スズメ' },
   },
@@ -113,7 +113,7 @@ export type RoundResult = {
 }
 
 export const MOCK_ROUND_BREAKDOWN: RoundResult[] = [
-  { round: 1, object: 'Crow', emoji: '🐦‍⬛', flies: true, correct: true, reactionMs: 410 },
+  { round: 1, object: 'Crow', emoji: '🐦', flies: true, correct: true, reactionMs: 410 },
   { round: 2, object: 'Cat', emoji: '🐈', flies: false, correct: true, reactionMs: 0 },
   { round: 3, object: 'Aeroplane', emoji: '✈️', flies: true, correct: true, reactionMs: 380 },
   { round: 4, object: 'Mountain', emoji: '⛰️', flies: false, correct: false, reactionMs: 290 },

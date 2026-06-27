@@ -258,7 +258,12 @@ export function LobbyScreen() {
                   onValueChange={(v) => setLangs((s) => ({ ...s, [p.id]: v }))}
                 >
                   <SelectTrigger className="h-10 w-36 rounded-xl">
-                    <SelectValue />
+                    <SelectValue>
+                      {(value: string) => {
+                        const l = LANGUAGES.find((x) => x.code === value)
+                        return l ? `${l.flag} ${l.label}` : value
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {LANGUAGES.map((l) => (
