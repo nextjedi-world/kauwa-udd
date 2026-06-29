@@ -22,14 +22,13 @@ export interface ReadyGateProps {
 export function ReadyGate({
   readyIds,
   total,
-  endsAt,
-  clockOffset,
   playerId,
   onReady,
 }: ReadyGateProps) {
-  const [remainingMs, setRemainingMs] = useState(() =>
-    Math.max(0, endsAt - (Date.now() + clockOffset)),
-  )
+  // Local visual countdown (clock-skew-proof). The server enforces the real 10s
+  // timeout and dismisses this gate via started=true; this is display only.
+  const targetRef = useRef<number>(Date.now() + 10000)
+  const [remainingMs, setRemainingMs] = useState(10000)
   const [holding, setHolding] = useState(false)
   const holdRef = useRef(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -38,18 +37,17 @@ export function ReadyGate({
   const youReady = readyIds.includes(playerId)
   const count = readyIds.length
 
-  // Authoritative countdown to endsAt (server clock).
+  // Visual countdown from 10s (local clock — no skew). Server dismisses the gate.
   useEffect(() => {
     let raf = 0
     const loop = () => {
-      const serverNow = Date.now() + clockOffset
-      const ms = Math.max(0, endsAt - serverNow)
+      const ms = Math.max(0, targetRef.current - Date.now())
       setRemainingMs(ms)
       if (ms > 0) raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [endsAt, clockOffset])
+  }, [])
 
   // Confirmation chirp the moment the server registers you as ready.
   useEffect(() => {
