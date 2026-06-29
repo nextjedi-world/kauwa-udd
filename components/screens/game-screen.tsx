@@ -3,20 +3,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, Check, Zap, Hand, Ear } from 'lucide-react'
+import { X, Check, Zap, Hand, Ear, Volume2, VolumeX, LogOut } from 'lucide-react'
 import { GAME_OBJECTS, type GameObject } from '@/lib/game-data'
 import { ROUND_MS, type AnnounceMode, type Standing } from '@/lib/types'
 import type { RoundStartPayload, RoundResultPayload } from '@/lib/realtime/events'
 import { speak, cancelSpeech, isTtsSupported } from '@/lib/tts'
+import { playSfx, isMuted, setMuted } from '@/lib/sfx'
 import { cn } from '@/lib/utils'
 
-const TOTAL_ROUNDS = 8 // solo
+const TOTAL_ROUNDS = 8 // solo (fallback when no config passed)
 const SOLO_ANNOUNCE: AnnounceMode = 'voice'
 const REVEAL_LEAD_MS = 400 // voice mode: show the image this long before the deadline
 
 type Phase = 'arm' | 'live' | 'waiting' | 'feedback'
 type Outcome = { correct: boolean; reason: string; points: number }
 type ScoreRow = { id: string; name: string; avatar: string; score: number; isYou: boolean }
+
+/** Solo configuration sourced from getSoloPrefs() (see SoloSetup). */
+export interface SoloConfig {
+  rounds: number
+  announce: AnnounceMode
+  language: string
+}
 
 export interface RoomGameProps {
   code: string
@@ -47,9 +55,14 @@ function reasonFor(flies: boolean, released: boolean, correct: boolean): string 
   return flies ? 'Too slow — it flew away!' : 'Grounded. Held it steady!'
 }
 
-export function GameScreen({ room }: { room?: RoomGameProps }) {
+export function GameScreen({ room, solo }: { room?: RoomGameProps; solo?: SoloConfig }) {
   const router = useRouter()
   const isRoom = !!room
+
+  // solo configuration (falls back to legacy constants when not provided)
+  const soloRounds = solo?.rounds ?? TOTAL_ROUNDS
+  const soloAnnounce = solo?.announce ?? SOLO_ANNOUNCE
+  const soloLang = solo?.language ?? 'en'
 
   // ── shared visual state ───────────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>('arm')
@@ -57,10 +70,19 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
   const [revealed, setRevealed] = useState(false)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
   const [holding, setHolding] = useState(false) // reflects the player's ACTUAL press
+  const [muted, setMutedState] = useState(false)
+
+  useEffect(() => setMutedState(isMuted()), [])
+  const toggleMute = () => {
+    const next = !muted
+    setMuted(next)
+    setMutedState(next)
+  }
 
   const holdingRef = useRef(false)
   const rafRef = useRef(0)
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const tickSecRef = useRef<number>(99) // last countdown second a 'tick' fired for
 
   const stopRaf = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
@@ -78,13 +100,15 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
       const word = obj ? obj.words[lang] ?? obj.words.en ?? '' : ''
       const ttsOk = isTtsSupported()
       if (announce === 'voice' && ttsOk) {
+        // Voice mode: TTS carries the cue, so we skip the 'reveal' SFX to avoid overlap.
         if (word) speak(word, lang)
         const lead = Math.max(0, clientEndMs - Date.now() - REVEAL_LEAD_MS)
         setRevealed(false)
         revealTimerRef.current = setTimeout(() => setRevealed(true), lead)
       } else {
-        // visual mode (or no TTS): show immediately, still announce if voice was intended
+        // visual mode (or no TTS): show immediately + a short reveal chime
         if (announce === 'voice' && word) speak(word, lang)
+        playSfx('reveal')
         setRevealed(true)
       }
     },
@@ -99,7 +123,7 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
 
   useEffect(() => {
     if (isRoom) return
-    setSequence(shuffle(GAME_OBJECTS).slice(0, TOTAL_ROUNDS))
+    setSequence(shuffle(GAME_OBJECTS).slice(0, soloRounds))
     setSoloScores([
       { id: 'you', name: 'You', avatar: '🦅', score: 0, isYou: true },
       { id: 'b1', name: 'Aisha', avatar: '🐤', score: 0, isYou: false },
@@ -107,7 +131,8 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
       { id: 'b3', name: 'Mira', avatar: '🕊️', score: 0, isYou: false },
       { id: 'b4', name: 'Kenji', avatar: '🦉', score: 0, isYou: false },
     ])
-  }, [isRoom])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRoom, soloRounds])
 
   const soloCurrent = sequence[soloRound]
 
@@ -125,6 +150,11 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
       const speedBonus = released && flies ? Math.max(0, Math.round((ROUND_MS - elapsed) / 10)) : 0
       const points = correct ? 100 + speedBonus : -50
 
+      // outcome SFX: bonus for a fast correct release, otherwise correct / penalty
+      if (!correct) playSfx('penalty')
+      else if (released && flies) playSfx('bonus')
+      else playSfx('correct')
+
       setOutcome({ correct, reason, points })
       setPhase('feedback')
 
@@ -137,7 +167,7 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
       )
 
       window.setTimeout(() => {
-        if (soloRound + 1 >= TOTAL_ROUNDS) {
+        if (soloRound + 1 >= soloRounds) {
           try {
             sessionStorage.setItem(
               'kauwa.soloResults',
@@ -156,13 +186,19 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
         }
       }, 1500)
     },
-    [soloCurrent, soloRound, soloScores, router],
+    [soloCurrent, soloRound, soloScores, router, soloRounds],
   )
 
   const soloTick = useCallback(() => {
     const elapsed = performance.now() - startRef.current
     const p = Math.min(1, elapsed / ROUND_MS)
     setProgress(p)
+    // last-3-seconds ticks
+    const secsLeft = Math.ceil((ROUND_MS - elapsed) / 1000)
+    if (secsLeft <= 3 && secsLeft >= 1 && secsLeft < tickSecRef.current) {
+      tickSecRef.current = secsLeft
+      playSfx('tick')
+    }
     if (p >= 1) {
       soloSettle(false, ROUND_MS)
       return
@@ -183,10 +219,12 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
     armedRoundRef.current = r.round
     postedRef.current = false
     shownResultRef.current = -1
+    tickSecRef.current = 99
     setOutcome(null)
     setProgress(0)
     setHolding(false) // each round starts not-held — player presses to hold
     setPhase('live')
+    playSfx('roundStart')
     const obj = GAME_OBJECTS.find((o) => o.id === r.objectId)
     const clientEnd = r.endsAt - room.clockOffset
     armReveal(r.announce, obj, room.language, clientEnd)
@@ -204,6 +242,11 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
       const serverNow = Date.now() + offset
       const p = Math.min(1, Math.max(0, (serverNow - start) / ROUND_MS))
       setProgress(p)
+      const secsLeft = Math.ceil((endsAt - serverNow) / 1000)
+      if (secsLeft <= 3 && secsLeft >= 1 && secsLeft < tickSecRef.current) {
+        tickSecRef.current = secsLeft
+        playSfx('tick')
+      }
       if (serverNow >= endsAt) {
         if (!postedRef.current) {
           postedRef.current = true
@@ -231,7 +274,13 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
     const mine = res.results.find((r) => r.playerId === room.playerId)
     if (mine) {
       setOutcome({ correct: mine.correct, points: mine.points, reason: reasonFor(res.flies, mine.released, mine.correct) })
+      // outcome SFX (bonus for a top-3 ranked correct release)
+      if (!mine.correct) playSfx('penalty')
+      else if (mine.rank && mine.rank <= 3) playSfx('bonus')
+      else playSfx('correct')
     }
+    // elimination sting if this player was just knocked out
+    if (res.eliminatedPlayerIds?.includes(room.playerId)) playSfx('eliminate')
     setPhase('feedback')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRoom, room?.result?.round])
@@ -248,10 +297,12 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
       holdingRef.current = true
       setHolding(true)
       startRef.current = performance.now()
+      tickSecRef.current = 99
       setPhase('live')
       setProgress(0)
+      playSfx('roundStart')
       const clientEnd = Date.now() + ROUND_MS
-      armReveal(SOLO_ANNOUNCE, soloCurrent, 'en', clientEnd)
+      armReveal(soloAnnounce, soloCurrent, soloLang, clientEnd)
       rafRef.current = requestAnimationFrame(soloTick)
     }
   }
@@ -289,12 +340,12 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
       : undefined
     : soloCurrent
 
-  const lang = isRoom ? room!.language : 'en'
-  const announce = isRoom ? room!.announce : SOLO_ANNOUNCE
+  const lang = isRoom ? room!.language : soloLang
+  const announce = isRoom ? room!.announce : soloAnnounce
   const word = current?.words[lang] ?? current?.words.en ?? ''
 
   const roundNumber = isRoom ? room?.round?.round ?? 1 : soloRound + 1
-  const totalRounds = isRoom ? room!.totalRounds : TOTAL_ROUNDS
+  const totalRounds = isRoom ? room!.totalRounds : soloRounds
 
   const scoreList: ScoreRow[] = isRoom
     ? room!.standings.map((s) => ({
@@ -314,26 +365,50 @@ export function GameScreen({ room }: { room?: RoomGameProps }) {
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-8 pt-6">
       {/* Top bar */}
       <header className="flex items-start justify-between gap-3">
-        <div className="rounded-2xl bg-card px-4 py-2 shadow-sm">
-          <p className="text-xs font-semibold text-muted-foreground">Round</p>
-          <p className="font-heading text-xl font-bold leading-none">
-            {roundNumber}
-            <span className="text-sm text-muted-foreground">/{totalRounds}</span>
-          </p>
-        </div>
-        <div className="flex -space-x-2">
-          {sorted.slice(0, 4).map((p, i) => (
-            <div
-              key={p.id}
-              className={cn(
-                'grid size-10 place-items-center rounded-full border-2 border-background bg-card text-lg shadow-sm',
-                i === 0 && 'ring-2 ring-accent',
-              )}
-              title={`${p.name}: ${p.score}`}
+        <div className="flex items-center gap-2">
+          {!isRoom && (
+            <button
+              onClick={() => {
+                cancelSpeech()
+                router.push('/')
+              }}
+              className="grid size-10 place-items-center rounded-2xl border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-secondary"
+              aria-label="Leave solo game"
             >
-              {p.avatar}
-            </div>
-          ))}
+              <LogOut className="size-5" />
+            </button>
+          )}
+          <div className="rounded-2xl bg-card px-4 py-2 shadow-sm">
+            <p className="text-xs font-semibold text-muted-foreground">Round</p>
+            <p className="font-heading text-xl font-bold leading-none">
+              {roundNumber}
+              <span className="text-sm text-muted-foreground">/{totalRounds}</span>
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex -space-x-2">
+            {sorted.slice(0, 4).map((p, i) => (
+              <div
+                key={p.id}
+                className={cn(
+                  'grid size-10 place-items-center rounded-full border-2 border-background bg-card text-lg shadow-sm',
+                  i === 0 && 'ring-2 ring-accent',
+                )}
+                title={`${p.name}: ${p.score}`}
+              >
+                {p.avatar}
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={toggleMute}
+            className="grid size-10 place-items-center rounded-2xl border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-secondary"
+            aria-label={muted ? 'Unmute sound' : 'Mute sound'}
+            title={muted ? 'Unmute' : 'Mute'}
+          >
+            {muted ? <VolumeX className="size-5 text-muted-foreground" /> : <Volume2 className="size-5 text-primary" />}
+          </button>
         </div>
       </header>
 

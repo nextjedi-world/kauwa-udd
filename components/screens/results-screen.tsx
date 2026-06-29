@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Crown, RotateCw, Share2, Check, X, Trophy, Home } from 'lucide-react'
 import { Logo } from '@/components/brand/logo'
 import { TactileLink, TactileButton } from '@/components/brand/tactile-button'
 import { MOCK_ROUND_BREAKDOWN } from '@/lib/game-data'
+import { buildLeaderboardUrl, shareOrCopy } from '@/lib/invite'
+import { playSfx } from '@/lib/sfx'
 import type { Standing } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -25,7 +27,11 @@ export interface ResultsScreenProps {
   playerId?: string
   winnerId?: string | null
   breakdown?: BreakdownRow[]
+  /** Room code — enables sharing the room leaderboard and "New game" semantics. */
+  code?: string
   onPlayAgain?: () => void
+  /** Label for the primary action (room: "New Game", solo defaults handled internally). */
+  playAgainLabel?: string
 }
 
 const PLACE_META = [
@@ -66,7 +72,7 @@ export function ResultsScreen(props: ResultsScreenProps) {
   }, [hasRoom])
 
   // Unified view model
-  const { podium, breakdown, title, correctCount, total } = useMemo(() => {
+  const { podium, breakdown, title, correctCount, total, youWon } = useMemo(() => {
     if (hasRoom) {
       const ranked: PodiumRow[] = props.standings!.map((s, i) => ({
         place: i + 1,
@@ -85,18 +91,20 @@ export function ResultsScreen(props: ResultsScreenProps) {
         title: youWon ? 'You took the sky! 🏆' : `${winnerName} takes the sky! 🏆`,
         correctCount: correct,
         total: bd.length,
+        youWon: !!youWon,
       }
     }
     // solo
     if (solo) {
       const bd = MOCK_ROUND_BREAKDOWN
-      const youWon = solo.scores[0]?.isYou
+      const soloWon = solo.scores[0]?.isYou
       return {
         podium: buildPodium(solo.scores),
         breakdown: bd,
-        title: youWon ? 'You took the sky! 🏆' : `${solo.scores[0]?.name ?? ''} takes the sky! 🏆`,
+        title: soloWon ? 'You took the sky! 🏆' : `${solo.scores[0]?.name ?? ''} takes the sky! 🏆`,
         correctCount: bd.filter((r) => r.correct).length,
         total: bd.length,
+        youWon: !!soloWon,
       }
     }
     // pure mock fallback
@@ -111,16 +119,35 @@ export function ResultsScreen(props: ResultsScreenProps) {
       title: 'You took the sky! 🏆',
       correctCount: MOCK_ROUND_BREAKDOWN.filter((r) => r.correct).length,
       total: MOCK_ROUND_BREAKDOWN.length,
+      youWon: true,
     }
   }, [hasRoom, solo, props.standings, props.breakdown, props.playerId, props.winnerId])
 
+  // Win/lose sting once the result is resolved (waits for solo sessionStorage load).
+  const stingRef = useRef(false)
+  useEffect(() => {
+    if (stingRef.current) return
+    if (!hasRoom && !solo) return // solo result not loaded yet
+    stingRef.current = true
+    playSfx(youWon ? 'win' : 'lose')
+  }, [hasRoom, solo, youWon])
+
   const onShare = async () => {
-    const text = 'I just played Kauwa Udd — Hold. Release. React. Can you beat my score?'
-    try {
-      if (navigator.share) await navigator.share({ title: 'Kauwa Udd', text })
-      else await navigator.clipboard.writeText(text)
-    } catch {
-      /* ignore */
+    if (props.code) {
+      // Share the room's cumulative leaderboard so friends can see who won.
+      await shareOrCopy({
+        title: 'Kauwa Udd results',
+        text: 'See who won our match!',
+        url: buildLeaderboardUrl(props.code),
+      })
+    } else {
+      const text = 'I just played Kauwa Udd — Hold. Release. React. Can you beat my score?'
+      try {
+        if (navigator.share) await navigator.share({ title: 'Kauwa Udd', text })
+        else await navigator.clipboard.writeText(text)
+      } catch {
+        /* ignore */
+      }
     }
     setShared(true)
     setTimeout(() => setShared(false), 1600)
@@ -257,10 +284,10 @@ export function ResultsScreen(props: ResultsScreenProps) {
             variant="primary"
             size="lg"
             className="flex-1"
-            icon={<Home className="size-6" />}
+            icon={<RotateCw className="size-6" />}
             onClick={props.onPlayAgain}
           >
-            New Game
+            {props.playAgainLabel ?? 'New Game'}
           </TactileButton>
         ) : (
           <TactileLink href="/game" variant="primary" size="lg" className="flex-1" icon={<RotateCw className="size-6" />}>

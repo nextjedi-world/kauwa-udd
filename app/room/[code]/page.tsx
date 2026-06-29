@@ -2,29 +2,37 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { AnimatePresence } from 'framer-motion'
 import { Loader2, AlertTriangle } from 'lucide-react'
 import { SkyBackdrop } from '@/components/brand/sky-backdrop'
 import { TactileLink } from '@/components/brand/tactile-button'
 import { LobbyScreen } from '@/components/screens/lobby-screen'
 import { GameScreen } from '@/components/screens/game-screen'
 import { ResultsScreen } from '@/components/screens/results-screen'
+import { ReadyGate } from '@/components/game/ready-gate'
+import { JoinRoomModal } from '@/components/game/join-room-modal'
 import {
   getRoom,
   joinRoom,
   patchSettings,
   startGame,
   postClick,
+  postReady,
+  leaveRoom,
+  restartRoom,
 } from '@/lib/api'
 import {
   getPlayerId,
   getPlayerName,
   getPlayerAvatar,
+  setPlayerName,
 } from '@/lib/identity'
 import { useRoomChannel } from '@/lib/realtime/client'
 import { EVENTS } from '@/lib/realtime/events'
 import type {
   EventName,
   RoomUpdatePayload,
+  ReadyUpdatePayload,
   RoundStartPayload,
   RoundResultPayload,
   GameOverPayload,
@@ -50,6 +58,14 @@ export default function RoomPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
+
+  // join-on-invite flow
+  const [needJoin, setNeedJoin] = useState(false)
+  const [joining, setJoining] = useState(false)
+  const [joinError, setJoinError] = useState<string | null>(null)
+
+  // pre-round hold-to-ready gate
+  const [ready, setReady] = useState<ReadyUpdatePayload | null>(null)
 
   // live round flow
   const [round, setRound] = useState<RoundStartPayload | null>(null)
@@ -82,16 +98,8 @@ export default function RoomPage() {
         if (cancelled) return
         applyBundle(bundle.players, bundle.room.settings, bundle.room.hostId, bundle.room.status)
         const alreadyIn = bundle.players.some((p) => p.id === playerId)
-        if (!alreadyIn) {
-          const joined = await joinRoom(code, {
-            playerId,
-            name: getPlayerName() || 'Guest',
-            avatar: getPlayerAvatar(),
-            language: 'en',
-          })
-          if (cancelled) return
-          applyBundle(joined.players, joined.room.settings, joined.room.hostId, joined.room.status)
-        }
+        // Hosts / returning members go straight in; fresh invitees confirm first.
+        if (!alreadyIn) setNeedJoin(true)
         setLoading(false)
       } catch (e) {
         if (cancelled) return
@@ -127,6 +135,16 @@ export default function RoomPage() {
           setSettings(p.settings)
           setHostId(p.hostId)
           setStatus(p.status)
+          // Back to the lobby (e.g. after a "New game" restart) -> wipe live state.
+          if (p.status === 'lobby') {
+            breakdownRef.current = []
+            setBreakdown([])
+            setRound(null)
+            setResult(null)
+            setWinnerId(null)
+            setStandings([])
+            setReady(null)
+          }
           break
         }
         case EVENTS.GAME_START: {
@@ -135,6 +153,13 @@ export default function RoomPage() {
           setRound(null)
           setResult(null)
           setWinnerId(null)
+          setReady(null)
+          setStatus('playing')
+          break
+        }
+        case EVENTS.READY_UPDATE: {
+          const p = payload as ReadyUpdatePayload
+          setReady(p)
           setStatus('playing')
           break
         }
@@ -144,6 +169,7 @@ export default function RoomPage() {
           clockOffsetRef.current = offset
           setClockOffset(offset)
           setResult(null)
+          setReady(null) // first round dismisses the ready gate
           setRound(p)
           setStatus('playing')
           break
@@ -238,6 +264,51 @@ export default function RoomPage() {
     [code],
   )
 
+  // ── invite-join confirm ──────────────────────────────────────────────────────
+  const onJoinConfirm = useCallback(
+    async (joinName: string, joinAvatar: string) => {
+      setJoining(true)
+      setJoinError(null)
+      // Persist the chosen identity so the rest of the app stays consistent.
+      setPlayerName(joinName)
+      if (typeof window !== 'undefined') localStorage.setItem('kauwa.playerAvatar', joinAvatar)
+      setName(joinName)
+      setAvatar(joinAvatar)
+      try {
+        const joined = await joinRoom(code, {
+          playerId: getPlayerId(),
+          name: joinName,
+          avatar: joinAvatar,
+          language: 'en',
+        })
+        applyBundle(joined.players, joined.room.settings, joined.room.hostId, joined.room.status)
+        setNeedJoin(false)
+      } catch (e) {
+        setJoinError(e instanceof Error ? e.message : 'Could not join room')
+      } finally {
+        setJoining(false)
+      }
+    },
+    [code],
+  )
+
+  // ── leave room ───────────────────────────────────────────────────────────────
+  const onLeave = useCallback(() => {
+    leaveRoom(code, getPlayerId()).catch(() => {})
+    router.push('/')
+  }, [code, router])
+
+  // ── hold-to-ready ────────────────────────────────────────────────────────────
+  const onReady = useCallback(() => {
+    postReady(code, getPlayerId()).catch(() => {})
+  }, [code])
+
+  // ── new game in the same room ─────────────────────────────────────────────────
+  const onRestart = useCallback(() => {
+    restartRoom(code, getPlayerId()).catch(() => {})
+    // ROOM_UPDATE(status='lobby') will drive everyone back to the lobby + reset state.
+  }, [code])
+
   // ── render ──────────────────────────────────────────────────────────────────
   if (error) {
     return (
@@ -275,6 +346,34 @@ export default function RoomPage() {
     )
   }
 
+  // Fresh invitee: confirm identity before joining (host/members skip this).
+  if (needJoin) {
+    return (
+      <>
+        <SkyBackdrop />
+        <main className="mx-auto grid min-h-dvh w-full max-w-md place-items-center px-5">
+          <div className="flex flex-col items-center gap-3 text-center text-muted-foreground">
+            <p className="font-heading text-xl font-bold text-foreground">
+              You&apos;re invited to room {code}
+            </p>
+            <p className="text-sm">{players.length} bird{players.length === 1 ? '' : 's'} waiting to play.</p>
+          </div>
+        </main>
+        <AnimatePresence>
+          <JoinRoomModal
+            code={code}
+            defaultName={name === 'Guest' ? '' : name}
+            defaultAvatar={avatar}
+            busy={joining}
+            error={joinError}
+            onConfirm={onJoinConfirm}
+            onCancel={() => router.push('/')}
+          />
+        </AnimatePresence>
+      </>
+    )
+  }
+
   if (status === 'finished') {
     return (
       <>
@@ -284,13 +383,32 @@ export default function RoomPage() {
           playerId={playerId}
           winnerId={winnerId}
           breakdown={breakdown}
-          onPlayAgain={() => router.push('/')}
+          code={code}
+          onPlayAgain={onRestart}
+          playAgainLabel="New Game"
         />
       </>
     )
   }
 
   if (status === 'playing') {
+    // Hold-to-ready gate runs after Start, before round 1 is live.
+    const gateActive = ready && !ready.started && !round
+    if (gateActive) {
+      return (
+        <>
+          <SkyBackdrop />
+          <ReadyGate
+            readyIds={ready.readyIds}
+            total={ready.total}
+            endsAt={ready.endsAt}
+            clockOffset={clockOffset}
+            playerId={playerId}
+            onReady={onReady}
+          />
+        </>
+      )
+    }
     return (
       <>
         <SkyBackdrop />
@@ -329,6 +447,7 @@ export default function RoomPage() {
         onChangeSettings={onChangeSettings}
         onChangeLanguage={onChangeLanguage}
         onStart={onStart}
+        onLeave={onLeave}
       />
     </>
   )

@@ -14,6 +14,7 @@ export const roomChannel = (code: string) => `room:${code}`
 export const EVENTS = {
   ROOM_UPDATE: 'room:update', // lobby state / settings / player list changed
   GAME_START: 'game:start', // host started the game
+  READY_UPDATE: 'ready:update', // hold-to-ready gate progress before round 1
   ROUND_START: 'round:start', // a new round is live (react now)
   ROUND_RESULT: 'round:result', // round scored
   GAME_OVER: 'game:over', // final standings
@@ -32,6 +33,13 @@ export interface RoomUpdatePayload {
 export interface GameStartPayload {
   totalRounds: number
   mode: GameSettings['mode']
+}
+
+export interface ReadyUpdatePayload {
+  readyIds: string[] // playerIds who have held-to-ready so far
+  total: number // non-eliminated players expected to ready up
+  endsAt: number // epoch ms — when the ready window closes (authoritative)
+  started: boolean // true on the final event: gate cleared, round 1 begins now
 }
 
 export interface RoundStartPayload {
@@ -61,6 +69,7 @@ export interface GameOverPayload {
 export interface EventPayloads {
   [EVENTS.ROOM_UPDATE]: RoomUpdatePayload
   [EVENTS.GAME_START]: GameStartPayload
+  [EVENTS.READY_UPDATE]: ReadyUpdatePayload
   [EVENTS.ROUND_START]: RoundStartPayload
   [EVENTS.ROUND_RESULT]: RoundResultPayload
   [EVENTS.GAME_OVER]: GameOverPayload

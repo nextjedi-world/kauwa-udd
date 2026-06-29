@@ -96,13 +96,46 @@ export function postClick(code: string, input: ClickInput) {
   })
 }
 
+/** Hold-to-ready: mark this player ready during the pre-round gate. */
+export function postReady(code: string, playerId: string) {
+  return jsonFetch<{ ok: true }>(`/api/rooms/${code}/ready`, {
+    method: 'POST',
+    body: JSON.stringify({ playerId }),
+  })
+}
+
+/** Leave the room (lobby presence). */
+export function leaveRoom(code: string, playerId: string) {
+  return jsonFetch<{ ok: true }>(`/api/rooms/${code}/leave`, {
+    method: 'POST',
+    body: JSON.stringify({ playerId }),
+  })
+}
+
+/** Restart a finished room back to the lobby for a fresh match (host action). */
+export function restartRoom(code: string, playerId: string) {
+  return jsonFetch<{ ok: true }>(`/api/rooms/${code}/restart`, {
+    method: 'POST',
+    body: JSON.stringify({ playerId }),
+  })
+}
+
 export interface LeaderboardResponse {
   entries: LeaderEntry[]
   you?: LeaderEntry
 }
 
-export function getLeaderboard(period: 'daily' | 'weekly') {
-  return jsonFetch<LeaderboardResponse>(
-    `/api/leaderboard?period=${period}&scope=global`,
-  )
+export type LeaderboardPeriod = 'daily' | 'weekly' | 'all'
+
+/**
+ * Fetch a leaderboard. Defaults to the global board; pass scope:'room' + code for
+ * a room-scoped cumulative board (used by the room results "Share" link).
+ */
+export function getLeaderboard(
+  period: LeaderboardPeriod,
+  opts?: { scope?: 'global' | 'room'; code?: string },
+) {
+  const params = new URLSearchParams({ period, scope: opts?.scope ?? 'global' })
+  if (opts?.code) params.set('code', opts.code)
+  return jsonFetch<LeaderboardResponse>(`/api/leaderboard?${params.toString()}`)
 }

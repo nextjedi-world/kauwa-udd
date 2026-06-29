@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn, useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, LogIn, Play, Sparkles, Trophy, ArrowRight, Loader2, Pencil } from 'lucide-react'
 import { Logo } from '@/components/brand/logo'
@@ -20,7 +19,6 @@ type Pending = { kind: 'create' } | { kind: 'join'; code: string } | null
 
 export function HomeScreen() {
   const router = useRouter()
-  const { data: session } = useSession()
   const [joinOpen, setJoinOpen] = useState(false)
   const [code, setCode] = useState('')
 
@@ -218,27 +216,6 @@ export function HomeScreen() {
           Play Solo
         </TactileLink>
       </section>
-
-      <footer className="mt-8 flex items-center justify-center gap-1 text-sm">
-        {session?.user ? (
-          <span className="rounded-full bg-secondary px-4 py-2 font-semibold text-secondary-foreground">
-            Signed in as {session.user.name ?? 'you'}
-          </span>
-        ) : (
-          <>
-            <button
-              onClick={() => void signIn()}
-              className="rounded-full px-4 py-2 font-semibold text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Sign in
-            </button>
-            <span className="text-muted-foreground/50">·</span>
-            <span className="rounded-full bg-primary px-4 py-2 font-semibold text-primary-foreground">
-              Playing as guest
-            </span>
-          </>
-        )}
-      </footer>
 
       {/* Profile / identity picker */}
       <AnimatePresence>

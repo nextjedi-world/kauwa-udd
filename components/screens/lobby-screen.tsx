@@ -14,9 +14,12 @@ import {
   Rocket,
   Loader2,
   Hourglass,
+  Share2,
+  LogOut,
 } from 'lucide-react'
 import { Logo } from '@/components/brand/logo'
 import { TactileButton } from '@/components/brand/tactile-button'
+import { buildInviteMessage, buildRoomUrl, shareOrCopy } from '@/lib/invite'
 import { Slider } from '@/components/ui/slider'
 import {
   Select,
@@ -92,6 +95,7 @@ export interface LobbyScreenProps {
   onChangeSettings: (partial: Partial<GameSettings>) => void
   onChangeLanguage: (lang: string) => void
   onStart: () => void
+  onLeave?: () => void
 }
 
 export function LobbyScreen({
@@ -106,15 +110,23 @@ export function LobbyScreen({
   onChangeSettings,
   onChangeLanguage,
   onStart,
+  onLeave,
 }: LobbyScreenProps) {
   const [copied, setCopied] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
   const isHost = playerId === hostId
   const isOnline = (p: RoomPlayer) => onlineIds.has(p.id) || p.online
   const onlineCount = players.filter(isOnline).length
 
+  const flash = (msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 1800)
+  }
+
+  // Copy the rich invite (text + link), not just the bare code.
   const copyCode = async () => {
     try {
-      await navigator.clipboard.writeText(code)
+      await navigator.clipboard.writeText(buildInviteMessage(code))
     } catch {
       /* ignore */
     }
@@ -122,16 +134,38 @@ export function LobbyScreen({
     setTimeout(() => setCopied(false), 1600)
   }
 
+  const shareInvite = async () => {
+    const res = await shareOrCopy({
+      title: 'Kauwa Udd',
+      text: buildInviteMessage(code),
+      url: buildRoomUrl(code),
+    })
+    if (res === 'shared') flash('Invite shared!')
+    else if (res === 'copied') flash('Invite copied!')
+    else flash('Could not share')
+  }
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-28 pt-6">
       <header className="flex items-center justify-between">
-        <Link
-          href="/"
-          className="grid size-10 place-items-center rounded-2xl border border-border bg-card text-foreground shadow-sm"
-          aria-label="Back to home"
-        >
-          <ArrowLeft className="size-5" />
-        </Link>
+        {onLeave ? (
+          <button
+            onClick={onLeave}
+            className="grid size-10 place-items-center rounded-2xl border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-secondary"
+            aria-label="Leave room"
+            title="Leave room"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+        ) : (
+          <Link
+            href="/"
+            className="grid size-10 place-items-center rounded-2xl border border-border bg-card text-foreground shadow-sm"
+            aria-label="Back to home"
+          >
+            <ArrowLeft className="size-5" />
+          </Link>
+        )}
         <Logo size="sm" />
         <div
           className={cn(
@@ -150,16 +184,25 @@ export function LobbyScreen({
         <p className="text-sm font-semibold opacity-80">Room code · share to invite</p>
         <div className="mt-2 flex items-center justify-between gap-3">
           <span className="font-mono text-4xl font-bold tracking-[0.3em]">{code}</span>
-          <button
-            onClick={copyCode}
-            className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary-foreground/15 transition-colors hover:bg-primary-foreground/25"
-            aria-label="Copy room code"
-          >
-            {copied ? <Check className="size-5" /> : <Copy className="size-5" />}
-          </button>
+          <div className="flex shrink-0 gap-2">
+            <button
+              onClick={copyCode}
+              className="grid size-12 place-items-center rounded-2xl bg-primary-foreground/15 transition-colors hover:bg-primary-foreground/25"
+              aria-label="Copy invite"
+            >
+              {copied ? <Check className="size-5" /> : <Copy className="size-5" />}
+            </button>
+            <button
+              onClick={shareInvite}
+              className="grid size-12 place-items-center rounded-2xl bg-primary-foreground/15 transition-colors hover:bg-primary-foreground/25"
+              aria-label="Share invite"
+            >
+              <Share2 className="size-5" />
+            </button>
+          </div>
         </div>
         <p className="mt-2 text-xs font-medium opacity-75">
-          {copied ? 'Copied to clipboard!' : 'Friends enter this code on the Join screen.'}
+          {copied ? 'Invite copied to clipboard!' : toast ?? 'Tap copy or share to invite friends.'}
         </p>
       </section>
 
@@ -168,6 +211,9 @@ export function LobbyScreen({
         <div className="mb-3 flex items-center gap-2">
           <Users className="size-4 text-primary" />
           <h2 className="font-heading text-lg font-semibold">Players</h2>
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-secondary-foreground">
+            {players.length} joined
+          </span>
           <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-bold text-success">
             {onlineCount} online
           </span>
@@ -355,6 +401,17 @@ export function LobbyScreen({
           </div>
         </div>
       </section>
+
+      {/* Leave room */}
+      {onLeave && (
+        <button
+          onClick={onLeave}
+          className="mx-auto mt-6 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-destructive"
+        >
+          <LogOut className="size-4" />
+          Leave room
+        </button>
+      )}
 
       {/* Start button (sticky) */}
       <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md bg-gradient-to-t from-background via-background to-transparent px-5 pb-6 pt-8">

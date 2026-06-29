@@ -15,11 +15,13 @@ import {
   pickRoundObjects,
   pickWinner,
 } from '@/lib/game/engine'
-import { recordScores } from '@/lib/db/leaderboard'
+import { recordRoomScores, recordScores } from '@/lib/db/leaderboard'
 import {
   applyRoundResults,
+  clearReady,
   eliminatePlayers,
   getAllObjects,
+  getReadyPlayers,
   getRoom,
   getRoundClicks,
   listPlayers,
@@ -28,12 +30,25 @@ import {
   updateRoomStatus,
   updateUserStats,
 } from '@/lib/db/repositories'
-import { ROUND_MS, scoreRound, type GameMode, type EliminationInterval } from '@/lib/types'
+import {
+  ROUND_MS,
+  scoreRound,
+  type GameMode,
+  type EliminationInterval,
+  type PlayerRoundResult,
+} from '@/lib/types'
 
 // Live reaction window (matches ROUND_MS = 3000) and the post-result pause,
 // expressed as Workflow sleep-duration labels.
 const ROUND_WINDOW = '3s'
 const RESULT_PAUSE = '3s'
+
+// Hold-to-ready synchronized start: window length, per-tick poll cadence, and the
+// one-time score penalty applied to players who never readied up.
+const READY_WINDOW_MS = 10_000
+const READY_TICK = '1s'
+const READY_TICKS = 10
+const HALF_PENALTY = -25
 
 interface PickedObject {
   id: string
@@ -75,6 +90,57 @@ async function loadGame(code: string): Promise<LoadedGame> {
     announce: room.settings.announce,
     objects: picked,
   }
+}
+
+/** Open the ready gate — returns the (persisted, replay-stable) window close time. */
+async function beginReady(_code: string): Promise<number> {
+  'use step'
+  return Date.now() + READY_WINDOW_MS
+}
+
+/** Publish current ready progress; returns done=true once all active players are ready. */
+async function readyTick(code: string, endsAt: number): Promise<{ done: boolean }> {
+  'use step'
+  const [players, readyIds] = await Promise.all([listPlayers(code), getReadyPlayers(code)])
+  const active = players.filter((p) => !p.eliminated)
+  const readyActive = readyIds.filter((id) => active.some((p) => p.id === id))
+  await publish(code, EVENTS.READY_UPDATE, {
+    readyIds: readyActive,
+    total: active.length,
+    endsAt,
+    started: false,
+  })
+  return { done: active.length > 0 && readyActive.length >= active.length }
+}
+
+/**
+ * Close the ready gate: apply the one-time HALF penalty to players who never
+ * readied (initialises their score to -25 from a fresh 0), then announce start.
+ */
+async function finalizeReady(code: string, endsAt: number): Promise<void> {
+  'use step'
+  const [players, readyIds] = await Promise.all([listPlayers(code), getReadyPlayers(code)])
+  const active = players.filter((p) => !p.eliminated)
+  const notReady = active.filter((p) => !readyIds.includes(p.id))
+
+  if (notReady.length) {
+    const penalties: PlayerRoundResult[] = notReady.map((p) => ({
+      playerId: p.id,
+      released: false,
+      correct: false,
+      points: HALF_PENALTY,
+      rank: null,
+      reactionMs: null,
+    }))
+    await applyRoundResults(code, penalties)
+  }
+
+  await publish(code, EVENTS.READY_UPDATE, {
+    readyIds: readyIds.filter((id) => active.some((p) => p.id === id)),
+    total: active.length,
+    endsAt,
+    started: true,
+  })
 }
 
 async function startRound(
@@ -153,6 +219,9 @@ async function finishGame(code: string): Promise<void> {
   await recordScores(lbPlayers, 'weekly', 'global')
   await recordScores(lbPlayers, 'all', 'global')
 
+  // Room-scoped board: cumulative across every game played in this room.
+  await recordRoomScores(code, lbPlayers)
+
   // Per-user aggregate stats (xp = points earned this game, +1 game, +win).
   await Promise.all(
     players.map((p) =>
@@ -177,6 +246,7 @@ async function finishGame(code: string): Promise<void> {
     winnerId,
   })
 
+  await clearReady(code)
   await updateRoomStatus(code, 'finished')
 }
 
@@ -186,6 +256,15 @@ export async function gameWorkflow(code: string): Promise<{ code: string; rounds
   'use workflow'
 
   const game = await loadGame(code)
+
+  // ── Ready gate: synchronized hold-to-ready start before round 1 ──
+  const readyEndsAt = await beginReady(code)
+  for (let i = 0; i < READY_TICKS; i++) {
+    const { done } = await readyTick(code, readyEndsAt)
+    if (done) break
+    await sleep(READY_TICK)
+  }
+  await finalizeReady(code, readyEndsAt)
 
   for (let round = 1; round <= game.totalRounds; round++) {
     const obj = game.objects[round - 1]
