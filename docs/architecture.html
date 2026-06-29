@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><style>html,body{margin:0;padding:0;background:#0a1628}</style></head>
+<body>
+<svg id="diagram" width="1480" height="940" viewBox="0 0 1480 940" xmlns="http://www.w3.org/2000/svg"
+     font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#7fb4ff"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#ff8a5b"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#34d399"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1480" height="940" fill="#0a1628"/>
+
+  <!-- Title -->
+  <text x="56" y="58" fill="#e8eef7" font-size="34" font-weight="700">🐦 Kauwa Udd — Architecture</text>
+  <text x="58" y="88" fill="#94a3b8" font-size="17">Real-time multiplayer reaction game · Vercel + Amazon DynamoDB · sharded by room to scale to millions</text>
+
+  <!-- ===== PLAYERS ===== -->
+  <g>
+    <rect x="48" y="360" width="250" height="230" rx="20" fill="#14233d" stroke="#3aa0ff" stroke-width="2"/>
+    <text x="173" y="400" fill="#3aa0ff" font-size="20" font-weight="700" text-anchor="middle">Players</text>
+    <text x="173" y="426" fill="#cdd9ec" font-size="14" text-anchor="middle">Next.js PWA (mobile + web)</text>
+    <text x="173" y="470" font-size="48" text-anchor="middle">📱 💻 📱</text>
+    <text x="173" y="520" fill="#94a3b8" font-size="13" text-anchor="middle">Hold ▸ release to react</text>
+    <text x="173" y="540" fill="#94a3b8" font-size="13" text-anchor="middle">up to 100 per room</text>
+    <text x="173" y="568" fill="#94a3b8" font-size="12" text-anchor="middle">guest play · per-player language</text>
+  </g>
+
+  <!-- ===== VERCEL GROUP ===== -->
+  <rect x="360" y="150" width="500" height="640" rx="22" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="384" y="182" fill="#ffffff" font-size="18" font-weight="700">▲ VERCEL</text>
+
+  <rect x="388" y="206" width="444" height="92" rx="16" fill="#16284a" stroke="#3aa0ff" stroke-width="2"/>
+  <text x="408" y="238" fill="#e8eef7" font-size="18" font-weight="700">Next.js 16 Frontend (built with v0)</text>
+  <text x="408" y="262" fill="#9fb4d4" font-size="13">React 19 · Tailwind · PWA — UI, hold/release,</text>
+  <text x="408" y="282" fill="#9fb4d4" font-size="13">realtime client, Web Audio SFX, TTS</text>
+
+  <rect x="388" y="318" width="210" height="120" rx="16" fill="#16284a" stroke="#3aa0ff" stroke-width="2"/>
+  <text x="404" y="346" fill="#e8eef7" font-size="16" font-weight="700">API Route Handlers</text>
+  <text x="404" y="370" fill="#9fb4d4" font-size="12">/rooms · /join · /click</text>
+  <text x="404" y="388" fill="#9fb4d4" font-size="12">/ready · /start · /restart</text>
+  <text x="404" y="406" fill="#9fb4d4" font-size="12">/leaderboard · /ably/token</text>
+  <text x="404" y="426" fill="#9fb4d4" font-size="12">mutations + auth</text>
+
+  <rect x="618" y="318" width="214" height="120" rx="16" fill="#16284a" stroke="#ff8a5b" stroke-width="2"/>
+  <text x="634" y="346" fill="#ffd9c7" font-size="16" font-weight="700">Vercel Workflow</text>
+  <text x="634" y="368" fill="#f0c3ad" font-size="12">durable — 1 per room</text>
+  <text x="634" y="386" fill="#9fb4d4" font-size="12">pick object → 3s window</text>
+  <text x="634" y="404" fill="#9fb4d4" font-size="12">→ rank 1·2·3 → score</text>
+  <text x="634" y="422" fill="#9fb4d4" font-size="12">crash-safe game loop</text>
+
+  <rect x="388" y="458" width="210" height="86" rx="16" fill="#16284a" stroke="#3aa0ff" stroke-width="2"/>
+  <text x="404" y="486" fill="#e8eef7" font-size="16" font-weight="700">Auth.js</text>
+  <text x="404" y="510" fill="#9fb4d4" font-size="12">guest play (no login)</text>
+  <text x="404" y="528" fill="#9fb4d4" font-size="12">DynamoDB adapter</text>
+
+  <rect x="618" y="458" width="214" height="86" rx="16" fill="#16284a" stroke="#34d399" stroke-width="2"/>
+  <text x="634" y="486" fill="#a7f3d0" font-size="16" font-weight="700">Vercel OIDC</text>
+  <text x="634" y="510" fill="#9fb4d4" font-size="12">assumes AWS IAM role</text>
+  <text x="634" y="528" fill="#9fb4d4" font-size="12">— no stored keys</text>
+
+  <!-- ===== ABLY ===== -->
+  <rect x="940" y="206" width="490" height="120" rx="20" fill="#241327" stroke="#ff5b87" stroke-width="2"/>
+  <text x="964" y="240" fill="#ff96b3" font-size="20" font-weight="700">Ably — Realtime</text>
+  <text x="964" y="268" fill="#e6c6d4" font-size="14">Channels + presence (one channel per room)</text>
+  <text x="964" y="292" fill="#9fb4d4" font-size="13">pushes round:start / round:result / ready / scores</text>
+  <text x="964" y="312" fill="#9fb4d4" font-size="13">to every player · token auth (key stays server-side)</text>
+
+  <!-- ===== AWS GROUP ===== -->
+  <rect x="940" y="380" width="500" height="410" rx="22" fill="none" stroke="#ff9900" stroke-opacity="0.7" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="964" y="412" fill="#ff9900" font-size="18" font-weight="700">☁ AWS  (acct 702147744920 · us-east-1)</text>
+
+  <rect x="966" y="436" width="300" height="190" rx="16" fill="#1a2233" stroke="#ff9900" stroke-width="2"/>
+  <text x="982" y="466" fill="#ffd591" font-size="18" font-weight="700">Amazon DynamoDB</text>
+  <text x="982" y="490" fill="#d8c3a0" font-size="13">single table (PK / SK)</text>
+  <text x="982" y="510" fill="#d8c3a0" font-size="13">+ GSI1 → leaderboards (top-N)</text>
+  <text x="982" y="534" fill="#9fb4d4" font-size="12">rooms · players · rounds · clicks</text>
+  <text x="982" y="552" fill="#9fb4d4" font-size="12">content (localized) · stats</text>
+  <text x="982" y="570" fill="#9fb4d4" font-size="12">leaderboards · auth</text>
+  <text x="982" y="598" fill="#7fd4a8" font-size="12">serverless · single-digit-ms</text>
+  <text x="982" y="616" fill="#7fd4a8" font-size="12">Global Tables → multi-region</text>
+
+  <rect x="1286" y="436" width="130" height="190" rx="16" fill="#1a2233" stroke="#ff9900" stroke-width="1.5"/>
+  <text x="1351" y="462" fill="#ffd591" font-size="14" font-weight="700" text-anchor="middle">IAM Role</text>
+  <text x="1351" y="486" fill="#9fb4d4" font-size="11" text-anchor="middle">Vercel OIDC</text>
+  <text x="1351" y="502" fill="#9fb4d4" font-size="11" text-anchor="middle">trust policy</text>
+  <text x="1351" y="524" fill="#9fb4d4" font-size="11" text-anchor="middle">dynamodb:*</text>
+  <text x="1351" y="540" fill="#9fb4d4" font-size="11" text-anchor="middle">on table</text>
+  <text x="1351" y="556" fill="#9fb4d4" font-size="11" text-anchor="middle">+ /index/*</text>
+
+  <rect x="966" y="648" width="450" height="118" rx="16" fill="none" stroke="#5a6b86" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text x="982" y="676" fill="#aebbd0" font-size="14" font-weight="700">Aurora DSQL  (roadmap)</text>
+  <text x="982" y="700" fill="#8595ad" font-size="12">distributed SQL for exact-rank leaderboards</text>
+  <text x="982" y="720" fill="#8595ad" font-size="12">+ analytics across millions of rows</text>
+  <text x="982" y="744" fill="#8595ad" font-size="12">(designed; DynamoDB powers the live app)</text>
+
+  <!-- ===== ARROWS ===== -->
+  <!-- Players <-> Ably (realtime, bidirectional) -->
+  <path d="M298,420 C620,360 720,300 938,266" fill="none" stroke="#ff8a5b" stroke-width="2.5" marker-end="url(#arrowB)" marker-start="url(#arrowB)"/>
+  <text x="560" y="330" fill="#ff8a5b" font-size="13" font-weight="600">WebSocket · round events + live scores + presence</text>
+
+  <!-- Players -> API (HTTPS) -->
+  <path d="M298,470 C330,430 350,400 386,378" fill="none" stroke="#7fb4ff" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="300" y="430" fill="#7fb4ff" font-size="12" font-weight="600">HTTPS</text>
+
+  <!-- Workflow -> Ably (publish) -->
+  <path d="M832,348 C890,330 905,310 938,292" fill="none" stroke="#ff8a5b" stroke-width="2.5" marker-end="url(#arrowB)"/>
+  <text x="838" y="322" fill="#ff8a5b" font-size="12" font-weight="600">publish (REST)</text>
+
+  <!-- OIDC -> IAM role / DynamoDB (assume role + read/write) -->
+  <path d="M832,500 C900,520 980,540 1284,540" fill="none" stroke="#34d399" stroke-width="2.5" marker-end="url(#arrowG)"/>
+  <text x="880" y="500" fill="#34d399" font-size="12" font-weight="600">assume role (OIDC, no keys)</text>
+
+  <!-- API/Workflow -> DynamoDB (read/write) -->
+  <path d="M832,400 C900,440 940,500 964,520" fill="none" stroke="#7fb4ff" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="852" y="446" fill="#7fb4ff" font-size="12" font-weight="600">read / write</text>
+
+  <!-- ===== SCALE NOTE ===== -->
+  <rect x="48" y="640" width="250" height="150" rx="16" fill="#101d33" stroke="#3aa0ff" stroke-width="1.5"/>
+  <text x="64" y="668" fill="#3aa0ff" font-size="15" font-weight="700">Scale model</text>
+  <text x="64" y="692" fill="#cdd9ec" font-size="12">Sharded by room:</text>
+  <text x="64" y="712" fill="#9fb4d4" font-size="12">1 Workflow + 1 Ably channel</text>
+  <text x="64" y="730" fill="#9fb4d4" font-size="12">+ 1 DynamoDB partition</text>
+  <text x="64" y="748" fill="#9fb4d4" font-size="12">per game → millions of</text>
+  <text x="64" y="766" fill="#9fb4d4" font-size="12">independent rooms, no</text>
+  <text x="64" y="784" fill="#9fb4d4" font-size="12">central bottleneck.</text>
+
+  <text x="740" y="918" fill="#5e6e88" font-size="13" text-anchor="middle">kauwa-udd.vercel.app  ·  Amazon DynamoDB via Vercel OIDC  ·  H0 Hackathon</text>
+</svg>
+</body>
+</html>
