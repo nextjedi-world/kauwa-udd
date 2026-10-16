@@ -1,6 +1,6 @@
 name: ci
 
-# Public repo: the reusable workflow in the private nextjedi/platform repo cannot be called from
+# Public repo: the reusable workflow in the private nextjedi-world/platform repo cannot be called from
 # here, so the steps of ci-web.yml are inlined. Keep in step with platform's ci-web.yml.
 on:
   pull_request:

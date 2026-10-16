@@ -1,4 +1,4 @@
-# Repo contract (nextjedi/platform docs/CONTRACTS.md):
+# Repo contract (nextjedi-world/platform docs/CONTRACTS.md):
 #   make setup   install dependencies
 #   make dev     run locally
 #   make verify  lint + format check + typecheck + unit tests + build (what CI and the Stop hook run)
