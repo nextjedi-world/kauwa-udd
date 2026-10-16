@@ -66,9 +66,7 @@ export function useRoomChannel(
       try {
         const members = await channel.presence.get()
         if (cancelled) return
-        setPresence(
-          members.map((m) => ({ clientId: m.clientId, data: m.data })),
-        )
+        setPresence(members.map((m) => ({ clientId: m.clientId, data: m.data })))
       } catch {
         // presence read can fail transiently while (re)connecting — ignore
       }

@@ -33,7 +33,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ code: string 
 
   const parsed = bodySchema.safeParse(json)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid body', issues: parsed.error.issues }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Invalid body', issues: parsed.error.issues },
+      { status: 400 },
+    )
   }
 
   const room = await getRoom(code)

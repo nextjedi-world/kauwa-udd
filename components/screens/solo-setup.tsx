@@ -145,7 +145,8 @@ export function SoloSetup({ onStart }: SoloSetupProps) {
         <div className="rounded-3xl border border-border bg-card p-4 shadow-sm">
           <label className="font-semibold">Announcements</label>
           <p className="mb-3 mt-0.5 text-sm text-muted-foreground">
-            Voice speaks the word and hides the image until the last moment. Visual shows it right away.
+            Voice speaks the word and hides the image until the last moment. Visual shows it right
+            away.
           </p>
           <Segmented
             value={prefs.announce}
@@ -162,7 +163,9 @@ export function SoloSetup({ onStart }: SoloSetupProps) {
           <div className="flex items-center justify-between gap-3">
             <div>
               <label className="font-semibold">Language</label>
-              <p className="mt-0.5 text-sm text-muted-foreground">Words are shown &amp; spoken in this language.</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Words are shown &amp; spoken in this language.
+              </p>
             </div>
             <Select value={prefs.language} onValueChange={(v) => update({ language: v as string })}>
               <SelectTrigger className="h-10 w-36 rounded-xl">

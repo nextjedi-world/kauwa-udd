@@ -1,4 +1,5 @@
 // POST /api/rooms — create a room (host becomes first player).
+import { log } from '@/lib/log'
 import { NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
@@ -35,7 +36,10 @@ export async function POST(req: Request) {
 
   const parsed = bodySchema.safeParse(json)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid body', issues: parsed.error.issues }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Invalid body', issues: parsed.error.issues },
+      { status: 400 },
+    )
   }
 
   const { hostName, hostAvatar, visibility, settings, language } = parsed.data
@@ -57,7 +61,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ code, playerId: hostId, room }, { status: 201 })
     } catch (e) {
       if ((e as { name?: string }).name === 'ConditionalCheckFailedException') continue
-      console.error('[rooms:create]', e)
+      log.error('rooms.create.failed', { error: e })
       return NextResponse.json({ error: 'Failed to create room' }, { status: 500 })
     }
   }

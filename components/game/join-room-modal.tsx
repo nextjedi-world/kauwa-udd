@@ -54,8 +54,7 @@ export function JoinRoomModal({
         className="w-full max-w-md rounded-t-3xl border border-border bg-card p-5 shadow-2xl sm:rounded-3xl"
       >
         <h2 className="font-heading text-xl font-bold">
-          Join room{' '}
-          <span className="font-mono tracking-[0.2em] text-primary">{code}</span>?
+          Join room <span className="font-mono tracking-[0.2em] text-primary">{code}</span>?
         </h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
           Pick your bird &amp; name, then jump into the flock.
@@ -68,7 +67,9 @@ export function JoinRoomModal({
               onClick={() => setAvatar(a)}
               className={cn(
                 'grid aspect-square place-items-center rounded-2xl text-2xl transition-colors',
-                a === avatar ? 'bg-primary ring-2 ring-primary' : 'bg-secondary hover:bg-secondary/70',
+                a === avatar
+                  ? 'bg-primary ring-2 ring-primary'
+                  : 'bg-secondary hover:bg-secondary/70',
               )}
             >
               {a}

@@ -21,12 +21,7 @@ import {
   leaveRoom,
   restartRoom,
 } from '@/lib/api'
-import {
-  getPlayerId,
-  getPlayerName,
-  getPlayerAvatar,
-  setPlayerName,
-} from '@/lib/identity'
+import { getPlayerId, getPlayerName, getPlayerAvatar, setPlayerName } from '@/lib/identity'
 import { useRoomChannel } from '@/lib/realtime/client'
 import { EVENTS } from '@/lib/realtime/events'
 import type {
@@ -77,7 +72,14 @@ export default function RoomPage() {
 
   // per-round breakdown for the local player (built from results)
   const breakdownRef = useRef<
-    { round: number; object: string; emoji: string; flies: boolean; correct: boolean; reactionMs: number }[]
+    {
+      round: number
+      object: string
+      emoji: string
+      flies: boolean
+      correct: boolean
+      reactionMs: number
+    }[]
   >([])
   const [breakdown, setBreakdown] = useState<typeof breakdownRef.current>([])
 
@@ -113,12 +115,7 @@ export default function RoomPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, playerId])
 
-  function applyBundle(
-    ps: RoomPlayer[],
-    s: GameSettings,
-    host: string,
-    st: Status,
-  ) {
+  function applyBundle(ps: RoomPlayer[], s: GameSettings, host: string, st: Status) {
     setPlayers(ps)
     setSettings(s)
     setHostId(host)
@@ -126,88 +123,85 @@ export default function RoomPage() {
   }
 
   // realtime
-  const onEvent = useCallback(
-    (event: EventName, payload: unknown) => {
-      switch (event) {
-        case EVENTS.ROOM_UPDATE: {
-          const p = payload as RoomUpdatePayload
-          setPlayers(p.players)
-          setSettings(p.settings)
-          setHostId(p.hostId)
-          setStatus(p.status)
-          // Back to the lobby (e.g. after a "New game" restart) -> wipe live state.
-          if (p.status === 'lobby') {
-            breakdownRef.current = []
-            setBreakdown([])
-            setRound(null)
-            setResult(null)
-            setWinnerId(null)
-            setStandings([])
-            setReady(null)
-          }
-          break
-        }
-        case EVENTS.GAME_START: {
+  const onEvent = useCallback((event: EventName, payload: unknown) => {
+    switch (event) {
+      case EVENTS.ROOM_UPDATE: {
+        const p = payload as RoomUpdatePayload
+        setPlayers(p.players)
+        setSettings(p.settings)
+        setHostId(p.hostId)
+        setStatus(p.status)
+        // Back to the lobby (e.g. after a "New game" restart) -> wipe live state.
+        if (p.status === 'lobby') {
           breakdownRef.current = []
           setBreakdown([])
           setRound(null)
           setResult(null)
           setWinnerId(null)
+          setStandings([])
           setReady(null)
-          setStatus('playing')
-          break
         }
-        case EVENTS.READY_UPDATE: {
-          const p = payload as ReadyUpdatePayload
-          setReady(p)
-          setStatus('playing')
-          break
-        }
-        case EVENTS.ROUND_START: {
-          const p = payload as RoundStartPayload
-          const offset = p.serverNow - Date.now()
-          clockOffsetRef.current = offset
-          setClockOffset(offset)
-          setResult(null)
-          setReady(null) // first round dismisses the ready gate
-          setRound(p)
-          setStatus('playing')
-          break
-        }
-        case EVENTS.ROUND_RESULT: {
-          const p = payload as RoundResultPayload
-          setResult(p)
-          setStandings(p.standings)
-          // append local player's breakdown row
-          const mine = p.results.find((r) => r.playerId === getPlayerId())
-          if (mine) {
-            const obj = resolveObject(p.objectId)
-            breakdownRef.current = [
-              ...breakdownRef.current.filter((b) => b.round !== p.round),
-              {
-                round: p.round,
-                object: obj?.word ?? p.objectId,
-                emoji: obj?.emoji ?? '❓',
-                flies: p.flies,
-                correct: mine.correct,
-                reactionMs: mine.reactionMs ?? 0,
-              },
-            ].sort((a, b) => a.round - b.round)
-            setBreakdown(breakdownRef.current)
-          }
-          break
-        }
-        case EVENTS.GAME_OVER: {
-          const p = payload as GameOverPayload
-          setStandings(p.standings)
-          setWinnerId(p.winnerId)
-          setStatus('finished')
-          break
-        }
+        break
       }
-    },
-    [],
-  )
+      case EVENTS.GAME_START: {
+        breakdownRef.current = []
+        setBreakdown([])
+        setRound(null)
+        setResult(null)
+        setWinnerId(null)
+        setReady(null)
+        setStatus('playing')
+        break
+      }
+      case EVENTS.READY_UPDATE: {
+        const p = payload as ReadyUpdatePayload
+        setReady(p)
+        setStatus('playing')
+        break
+      }
+      case EVENTS.ROUND_START: {
+        const p = payload as RoundStartPayload
+        const offset = p.serverNow - Date.now()
+        clockOffsetRef.current = offset
+        setClockOffset(offset)
+        setResult(null)
+        setReady(null) // first round dismisses the ready gate
+        setRound(p)
+        setStatus('playing')
+        break
+      }
+      case EVENTS.ROUND_RESULT: {
+        const p = payload as RoundResultPayload
+        setResult(p)
+        setStandings(p.standings)
+        // append local player's breakdown row
+        const mine = p.results.find((r) => r.playerId === getPlayerId())
+        if (mine) {
+          const obj = resolveObject(p.objectId)
+          breakdownRef.current = [
+            ...breakdownRef.current.filter((b) => b.round !== p.round),
+            {
+              round: p.round,
+              object: obj?.word ?? p.objectId,
+              emoji: obj?.emoji ?? '❓',
+              flies: p.flies,
+              correct: mine.correct,
+              reactionMs: mine.reactionMs ?? 0,
+            },
+          ].sort((a, b) => a.round - b.round)
+          setBreakdown(breakdownRef.current)
+        }
+        break
+      }
+      case EVENTS.GAME_OVER: {
+        const p = payload as GameOverPayload
+        setStandings(p.standings)
+        setWinnerId(p.winnerId)
+        setStatus('finished')
+        break
+      }
+    }
+  }, [])
 
   const channel = useRoomChannel(code || null, playerId, onEvent)
 
@@ -233,9 +227,7 @@ export default function RoomPage() {
   const onChangeLanguage = useCallback(
     (lang: string) => {
       // Each player owns their language; re-join upserts it (contract-safe).
-      setPlayers((prev) =>
-        prev.map((p) => (p.id === getPlayerId() ? { ...p, language: lang } : p)),
-      )
+      setPlayers((prev) => prev.map((p) => (p.id === getPlayerId() ? { ...p, language: lang } : p)))
       joinRoom(code, {
         playerId: getPlayerId(),
         name: getPlayerName() || 'Guest',
@@ -356,7 +348,9 @@ export default function RoomPage() {
             <p className="font-heading text-xl font-bold text-foreground">
               You&apos;re invited to room {code}
             </p>
-            <p className="text-sm">{players.length} bird{players.length === 1 ? '' : 's'} waiting to play.</p>
+            <p className="text-sm">
+              {players.length} bird{players.length === 1 ? '' : 's'} waiting to play.
+            </p>
           </div>
         </main>
         <AnimatePresence>

@@ -127,21 +127,50 @@ export function playSfx(name: SfxName): void {
 
   switch (name) {
     case 'roundStart':
-      seq(ac, [[N.G4, 0, 0.1], [N.C5, 0.09, 0.16]], { type: 'triangle' })
+      seq(
+        ac,
+        [
+          [N.G4, 0, 0.1],
+          [N.C5, 0.09, 0.16],
+        ],
+        { type: 'triangle' },
+      )
       break
     case 'reveal':
-      seq(ac, [[N.E5, 0, 0.08], [N.A5, 0.07, 0.14]], { type: 'sine' })
+      seq(
+        ac,
+        [
+          [N.E5, 0, 0.08],
+          [N.A5, 0.07, 0.14],
+        ],
+        { type: 'sine' },
+      )
       break
     case 'correct':
       // rising two-note
-      seq(ac, [[N.E5, 0, 0.1], [N.A5, 0.09, 0.16]], { type: 'sine' })
+      seq(
+        ac,
+        [
+          [N.E5, 0, 0.1],
+          [N.A5, 0.09, 0.16],
+        ],
+        { type: 'sine' },
+      )
       break
     case 'bonus':
       // bright triad
-      seq(ac, [[N.C6, 0, 0.12], [N.E6, 0.06, 0.12], [N.G6, 0.12, 0.18]], {
-        type: 'triangle',
-        gain: 0.16,
-      })
+      seq(
+        ac,
+        [
+          [N.C6, 0, 0.12],
+          [N.E6, 0.06, 0.12],
+          [N.G6, 0.12, 0.18],
+        ],
+        {
+          type: 'triangle',
+          gain: 0.16,
+        },
+      )
       break
     case 'penalty':
       // low buzzer
@@ -157,7 +186,14 @@ export function playSfx(name: SfxName): void {
       break
     case 'eliminate':
       // descending two-note thud
-      seq(ac, [[N.D5, 0, 0.12], [N.A3, 0.1, 0.22]], { type: 'sawtooth', gain: 0.13 })
+      seq(
+        ac,
+        [
+          [N.D5, 0, 0.12],
+          [N.A3, 0.1, 0.22],
+        ],
+        { type: 'sawtooth', gain: 0.13 },
+      )
       break
     case 'win':
       // ascending fanfare
@@ -185,7 +221,14 @@ export function playSfx(name: SfxName): void {
       )
       break
     case 'ready':
-      seq(ac, [[N.C5, 0, 0.1], [N.G5, 0.1, 0.16]], { type: 'triangle' })
+      seq(
+        ac,
+        [
+          [N.C5, 0, 0.1],
+          [N.G5, 0.1, 0.16],
+        ],
+        { type: 'triangle' },
+      )
       break
   }
 }

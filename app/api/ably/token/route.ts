@@ -40,9 +40,7 @@ async function issueToken(req: Request) {
   }
   const clientId = await extractClientId(req)
   const rest = new Ably.Rest(key)
-  const tokenRequest = await rest.auth.createTokenRequest(
-    clientId ? { clientId } : undefined,
-  )
+  const tokenRequest = await rest.auth.createTokenRequest(clientId ? { clientId } : undefined)
   return NextResponse.json(tokenRequest)
 }
 

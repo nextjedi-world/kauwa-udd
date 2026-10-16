@@ -13,14 +13,22 @@ const FLOATERS = [
 
 export function SkyBackdrop() {
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-sky">
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-sky"
+    >
       {FLOATERS.map((f, i) => (
         <motion.span
           key={i}
           className={`absolute select-none opacity-40 ${f.size}`}
           style={{ left: f.left, top: f.top }}
           animate={{ y: [0, -22, 0], rotate: [-6, 8, -6] }}
-          transition={{ duration: f.dur, delay: f.delay, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
+          transition={{
+            duration: f.dur,
+            delay: f.delay,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: 'easeInOut',
+          }}
         >
           {f.emoji}
         </motion.span>

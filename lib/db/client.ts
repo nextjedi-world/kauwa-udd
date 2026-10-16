@@ -16,8 +16,7 @@ const REGION = process.env.AWS_REGION ?? 'us-east-1'
 // stats, AND auth) lives in ONE table. In prod this is the Vercel↔AWS integration
 // table (env DYNAMODB_TABLE_NAME, e.g. "aws-dynamodb-sky-ocean"); locally it's
 // "kauwa-udd" in DynamoDB Local. The OIDC role is scoped to exactly this table.
-const MAIN_TABLE =
-  process.env.DYNAMODB_TABLE_NAME ?? process.env.DDB_TABLE ?? 'kauwa-udd'
+const MAIN_TABLE = process.env.DYNAMODB_TABLE_NAME ?? process.env.DDB_TABLE ?? 'kauwa-udd'
 
 export const TABLES = {
   /** Game + auth single-table. */

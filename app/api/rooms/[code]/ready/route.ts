@@ -1,4 +1,5 @@
 // POST /api/rooms/:code/ready — mark a player ready for the synchronized start.
+import { log } from '@/lib/log'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -20,7 +21,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
 
   const parsed = bodySchema.safeParse(json)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid body', issues: parsed.error.issues }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Invalid body', issues: parsed.error.issues },
+      { status: 400 },
+    )
   }
 
   try {
@@ -29,7 +33,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     await recordReady(code, parsed.data.playerId)
     return NextResponse.json({ ok: true })
   } catch (e) {
-    console.error('[rooms:ready]', e)
+    log.error('rooms.ready.failed', { error: e })
     return NextResponse.json({ error: 'Failed to record ready' }, { status: 500 })
   }
 }

@@ -1,4 +1,5 @@
 // POST /api/rooms/:code/click — buffer a player's reaction for the current round.
+import { log } from '@/lib/log'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -23,7 +24,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
 
   const parsed = bodySchema.safeParse(json)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid body', issues: parsed.error.issues }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Invalid body', issues: parsed.error.issues },
+      { status: 400 },
+    )
   }
 
   try {
@@ -39,7 +43,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     if ((e as { name?: string }).name === 'ConditionalCheckFailedException') {
       return NextResponse.json({ ok: true, duplicate: true })
     }
-    console.error('[rooms:click]', e)
+    log.error('rooms.click.failed', { error: e })
     return NextResponse.json({ error: 'Failed to record click' }, { status: 500 })
   }
 }

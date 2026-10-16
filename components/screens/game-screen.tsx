@@ -97,7 +97,7 @@ export function GameScreen({ room, solo }: { room?: RoomGameProps; solo?: SoloCo
   const armReveal = useCallback(
     (announce: AnnounceMode, obj: GameObject | undefined, lang: string, clientEndMs: number) => {
       clearRevealTimer()
-      const word = obj ? obj.words[lang] ?? obj.words.en ?? '' : ''
+      const word = obj ? (obj.words[lang] ?? obj.words.en ?? '') : ''
       const ttsOk = isTtsSupported()
       if (announce === 'voice' && ttsOk) {
         // Voice mode: TTS carries the cue, so we skip the 'reveal' SFX to avoid overlap.
@@ -273,7 +273,11 @@ export function GameScreen({ room, solo }: { room?: RoomGameProps; solo?: SoloCo
     setRevealed(true)
     const mine = res.results.find((r) => r.playerId === room.playerId)
     if (mine) {
-      setOutcome({ correct: mine.correct, points: mine.points, reason: reasonFor(res.flies, mine.released, mine.correct) })
+      setOutcome({
+        correct: mine.correct,
+        points: mine.points,
+        reason: reasonFor(res.flies, mine.released, mine.correct),
+      })
       // outcome SFX (bonus for a top-3 ranked correct release)
       if (!mine.correct) playSfx('penalty')
       else if (mine.rank && mine.rank <= 3) playSfx('bonus')
@@ -344,7 +348,7 @@ export function GameScreen({ room, solo }: { room?: RoomGameProps; solo?: SoloCo
   const announce = isRoom ? room!.announce : soloAnnounce
   const word = current?.words[lang] ?? current?.words.en ?? ''
 
-  const roundNumber = isRoom ? room?.round?.round ?? 1 : soloRound + 1
+  const roundNumber = isRoom ? (room?.round?.round ?? 1) : soloRound + 1
   const totalRounds = isRoom ? room!.totalRounds : soloRounds
 
   const scoreList: ScoreRow[] = isRoom
@@ -407,7 +411,11 @@ export function GameScreen({ room, solo }: { room?: RoomGameProps; solo?: SoloCo
             aria-label={muted ? 'Unmute sound' : 'Mute sound'}
             title={muted ? 'Unmute' : 'Mute'}
           >
-            {muted ? <VolumeX className="size-5 text-muted-foreground" /> : <Volume2 className="size-5 text-primary" />}
+            {muted ? (
+              <VolumeX className="size-5 text-muted-foreground" />
+            ) : (
+              <Volume2 className="size-5 text-primary" />
+            )}
           </button>
         </div>
       </header>
@@ -419,7 +427,9 @@ export function GameScreen({ room, solo }: { room?: RoomGameProps; solo?: SoloCo
             key={p.id}
             className={cn(
               'flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-semibold',
-              p.isYou ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground',
+              p.isYou
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-secondary-foreground',
             )}
           >
             <span className="text-xs opacity-70">{i + 1}.</span>
@@ -450,7 +460,9 @@ export function GameScreen({ room, solo }: { room?: RoomGameProps; solo?: SoloCo
               strokeLinecap="round"
               strokeDasharray={ring}
               strokeDashoffset={phase === 'live' ? ring * progress : 0}
-              style={{ transition: phase === 'live' ? 'none' : 'stroke-dashoffset 0.3s, stroke 0.2s' }}
+              style={{
+                transition: phase === 'live' ? 'none' : 'stroke-dashoffset 0.3s, stroke 0.2s',
+              }}
             />
           </svg>
 
@@ -497,7 +509,11 @@ export function GameScreen({ room, solo }: { room?: RoomGameProps; solo?: SoloCo
                       transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
                       className="grid size-20 place-items-center rounded-full bg-secondary"
                     >
-                      {announce === 'voice' ? <Ear className="size-9" /> : <span className="text-5xl">⏳</span>}
+                      {announce === 'voice' ? (
+                        <Ear className="size-9" />
+                      ) : (
+                        <span className="text-5xl">⏳</span>
+                      )}
                     </motion.span>
                     <span className="font-heading text-lg font-bold">
                       {phase === 'arm' ? 'Hold to start' : 'Listen!'}
@@ -527,7 +543,9 @@ export function GameScreen({ room, solo }: { room?: RoomGameProps; solo?: SoloCo
                 {outcome.correct ? <Check className="size-7" /> : <X className="size-7" />}
                 <span className="flex flex-col leading-tight">
                   <span className="font-heading text-lg font-bold">
-                    {outcome.points >= 0 ? `Correct +${outcome.points}` : `Penalty ${outcome.points}`}
+                    {outcome.points >= 0
+                      ? `Correct +${outcome.points}`
+                      : `Penalty ${outcome.points}`}
                   </span>
                   <span className="text-sm font-medium opacity-90">{outcome.reason}</span>
                 </span>

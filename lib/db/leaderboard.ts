@@ -191,10 +191,6 @@ export async function topNRoom(
 }
 
 /** Room leaderboard in the LeaderEntry shape used by the UI / API. */
-export async function getRoomLeaders(
-  code: string,
-  n = 20,
-  youId?: string,
-): Promise<LeaderEntry[]> {
+export async function getRoomLeaders(code: string, n = 20, youId?: string): Promise<LeaderEntry[]> {
   return toLeaderEntries(await topNRoom(code, n), youId)
 }

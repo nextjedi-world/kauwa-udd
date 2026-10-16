@@ -29,7 +29,9 @@ function Row({ e, i }: { e: LeaderEntry; i: number }) {
           <span className="font-mono text-sm font-bold text-muted-foreground">{e.rank}</span>
         )}
       </div>
-      <span className="grid size-11 place-items-center rounded-2xl bg-secondary text-2xl">{e.avatar}</span>
+      <span className="grid size-11 place-items-center rounded-2xl bg-secondary text-2xl">
+        {e.avatar}
+      </span>
       <div className="flex-1">
         <p className="font-bold leading-tight">
           {e.name} {e.isYou && <span className="text-xs font-semibold text-primary">(you)</span>}
@@ -106,7 +108,12 @@ export function LeaderboardScreen() {
                 transition={{ type: 'spring', stiffness: 400, damping: 32 }}
               />
             )}
-            <span className={cn('relative z-10', tab === t ? 'text-foreground' : 'text-muted-foreground')}>
+            <span
+              className={cn(
+                'relative z-10',
+                tab === t ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
               {t}
             </span>
           </button>
@@ -161,7 +168,9 @@ export function LeaderboardScreen() {
                   <Flame className="size-3.5" /> {you.streak} streak · {tab}
                 </p>
               </div>
-              <span className="font-mono text-lg font-bold tabular-nums">{you.score.toLocaleString()}</span>
+              <span className="font-mono text-lg font-bold tabular-nums">
+                {you.score.toLocaleString()}
+              </span>
             </div>
           </div>
         </div>

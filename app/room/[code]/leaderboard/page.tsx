@@ -24,9 +24,7 @@ interface RoomLeaderboardResponse {
 }
 
 async function fetchRoomLeaderboard(code: string): Promise<RoomLeaderboardResponse> {
-  const res = await fetch(
-    `/api/leaderboard?period=all&scope=room&code=${encodeURIComponent(code)}`,
-  )
+  const res = await fetch(`/api/leaderboard?period=all&scope=room&code=${encodeURIComponent(code)}`)
   if (!res.ok) throw new Error(`Request failed (${res.status})`)
   return (await res.json()) as RoomLeaderboardResponse
 }
@@ -49,7 +47,9 @@ function Row({ e, i }: { e: LeaderEntry; i: number }) {
           <span className="font-mono text-sm font-bold text-muted-foreground">{e.rank}</span>
         )}
       </div>
-      <span className="grid size-11 place-items-center rounded-2xl bg-secondary text-2xl">{e.avatar}</span>
+      <span className="grid size-11 place-items-center rounded-2xl bg-secondary text-2xl">
+        {e.avatar}
+      </span>
       <div className="flex-1">
         <p className="font-bold leading-tight">
           {e.name} {e.isYou && <span className="text-xs font-semibold text-primary">(you)</span>}

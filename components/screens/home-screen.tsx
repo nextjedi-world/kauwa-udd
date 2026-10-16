@@ -184,7 +184,10 @@ export function HomeScreen() {
               animate={{ opacity: 1, height: 'auto' }}
               className="flex flex-col gap-2 p-1"
             >
-              <label htmlFor="room-code" className="px-2 pt-1 text-sm font-semibold text-muted-foreground">
+              <label
+                htmlFor="room-code"
+                className="px-2 pt-1 text-sm font-semibold text-muted-foreground"
+              >
                 Enter room code
               </label>
               <div className="flex gap-2">
@@ -212,7 +215,12 @@ export function HomeScreen() {
           )}
         </div>
 
-        <TactileLink href="/game" variant="accent" size="lg" icon={<Play className="size-6 fill-current" />}>
+        <TactileLink
+          href="/game"
+          variant="accent"
+          size="lg"
+          icon={<Play className="size-6 fill-current" />}
+        >
           Play Solo
         </TactileLink>
       </section>
@@ -236,7 +244,9 @@ export function HomeScreen() {
               className="w-full max-w-md rounded-t-3xl border border-border bg-card p-5 shadow-2xl sm:rounded-3xl"
             >
               <h2 className="font-heading text-xl font-bold">Pick your bird</h2>
-              <p className="mt-0.5 text-sm text-muted-foreground">Choose a name & avatar to play.</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Choose a name & avatar to play.
+              </p>
 
               <div className="mt-4 grid grid-cols-5 gap-2">
                 {AVATARS.map((a) => (
@@ -245,7 +255,9 @@ export function HomeScreen() {
                     onClick={() => setAvatar(a)}
                     className={cn(
                       'grid aspect-square place-items-center rounded-2xl text-2xl transition-colors',
-                      a === avatar ? 'bg-primary ring-2 ring-primary' : 'bg-secondary hover:bg-secondary/70',
+                      a === avatar
+                        ? 'bg-primary ring-2 ring-primary'
+                        : 'bg-secondary hover:bg-secondary/70',
                     )}
                   >
                     {a}
