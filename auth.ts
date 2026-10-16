@@ -38,8 +38,7 @@ import { nanoid } from 'nanoid'
 // SINGLE-TABLE: auth shares the main table (uppercase PK/SK + GSI1).
 const LOCAL_ENDPOINT = process.env.DYNAMODB_LOCAL_ENDPOINT // e.g. http://localhost:8000
 const REGION = process.env.AWS_REGION ?? 'us-east-1'
-const AUTH_TABLE =
-  process.env.DYNAMODB_TABLE_NAME ?? process.env.DDB_TABLE ?? 'kauwa-udd'
+const AUTH_TABLE = process.env.DYNAMODB_TABLE_NAME ?? process.env.DDB_TABLE ?? 'kauwa-udd'
 
 function makeAuthClient(): DynamoDBClient {
   if (LOCAL_ENDPOINT) {
@@ -62,7 +61,11 @@ function makeAuthClient(): DynamoDBClient {
 }
 
 const authDoc = DynamoDBDocument.from(makeAuthClient(), {
-  marshallOptions: { convertEmptyValues: true, removeUndefinedValues: true, convertClassInstanceToMap: true },
+  marshallOptions: {
+    convertEmptyValues: true,
+    removeUndefinedValues: true,
+    convertClassInstanceToMap: true,
+  },
 })
 
 // Keys match the shared single table (uppercase PK/SK + GSI1). Auth item key
@@ -94,12 +97,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         avatar: { label: 'Avatar', type: 'text' },
       },
       authorize(credentials) {
-        const id =
-          (typeof credentials?.id === 'string' && credentials.id) || `guest_${nanoid(10)}`
-        const name =
-          (typeof credentials?.name === 'string' && credentials.name) || 'Guest'
-        const avatar =
-          (typeof credentials?.avatar === 'string' && credentials.avatar) || '🦅'
+        const id = (typeof credentials?.id === 'string' && credentials.id) || `guest_${nanoid(10)}`
+        const name = (typeof credentials?.name === 'string' && credentials.name) || 'Guest'
+        const avatar = (typeof credentials?.avatar === 'string' && credentials.avatar) || '🦅'
         // The returned object becomes the session user. We carry the emoji avatar
         // through `image` so the standard session shape exposes it.
         return { id, name, image: avatar, isGuest: true }

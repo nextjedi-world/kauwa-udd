@@ -24,7 +24,11 @@ const AUTH = process.env.DDB_AUTH_TABLE ?? 'kauwa-udd-auth'
 
 const client = new DynamoDBClient(
   LOCAL
-    ? { region: 'local', endpoint: LOCAL, credentials: { accessKeyId: 'local', secretAccessKey: 'local' } }
+    ? {
+        region: 'local',
+        endpoint: LOCAL,
+        credentials: { accessKeyId: 'local', secretAccessKey: 'local' },
+      }
     : { region: REGION },
 )
 
@@ -55,64 +59,64 @@ async function ensureTtl(table: string, attr: string) {
 }
 
 async function main() {
-// Table 1: game domain (PK/SK + GSI1 for leaderboard top-N)
-await ensureTable({
-  TableName: MAIN,
-  BillingMode: 'PAY_PER_REQUEST',
-  AttributeDefinitions: [
-    { AttributeName: 'PK', AttributeType: S },
-    { AttributeName: 'SK', AttributeType: S },
-    { AttributeName: 'GSI1PK', AttributeType: S },
-    { AttributeName: 'GSI1SK', AttributeType: S },
-  ],
-  KeySchema: [
-    { AttributeName: 'PK', KeyType: 'HASH' },
-    { AttributeName: 'SK', KeyType: 'RANGE' },
-  ],
-  GlobalSecondaryIndexes: [
-    {
-      IndexName: 'GSI1',
-      KeySchema: [
-        { AttributeName: 'GSI1PK', KeyType: 'HASH' },
-        { AttributeName: 'GSI1SK', KeyType: 'RANGE' },
-      ],
-      Projection: { ProjectionType: 'ALL' },
-    },
-  ],
-})
+  // Table 1: game domain (PK/SK + GSI1 for leaderboard top-N)
+  await ensureTable({
+    TableName: MAIN,
+    BillingMode: 'PAY_PER_REQUEST',
+    AttributeDefinitions: [
+      { AttributeName: 'PK', AttributeType: S },
+      { AttributeName: 'SK', AttributeType: S },
+      { AttributeName: 'GSI1PK', AttributeType: S },
+      { AttributeName: 'GSI1SK', AttributeType: S },
+    ],
+    KeySchema: [
+      { AttributeName: 'PK', KeyType: 'HASH' },
+      { AttributeName: 'SK', KeyType: 'RANGE' },
+    ],
+    GlobalSecondaryIndexes: [
+      {
+        IndexName: 'GSI1',
+        KeySchema: [
+          { AttributeName: 'GSI1PK', KeyType: 'HASH' },
+          { AttributeName: 'GSI1SK', KeyType: 'RANGE' },
+        ],
+        Projection: { ProjectionType: 'ALL' },
+      },
+    ],
+  })
 
-// Table 2: Auth.js (@auth/dynamodb-adapter): pk/sk + GSI1, TTL on `expires`
-await ensureTable({
-  TableName: AUTH,
-  BillingMode: 'PAY_PER_REQUEST',
-  AttributeDefinitions: [
-    { AttributeName: 'pk', AttributeType: S },
-    { AttributeName: 'sk', AttributeType: S },
-    { AttributeName: 'GSI1PK', AttributeType: S },
-    { AttributeName: 'GSI1SK', AttributeType: S },
-  ],
-  KeySchema: [
-    { AttributeName: 'pk', KeyType: 'HASH' },
-    { AttributeName: 'sk', KeyType: 'RANGE' },
-  ],
-  GlobalSecondaryIndexes: [
-    {
-      IndexName: 'GSI1',
-      KeySchema: [
-        { AttributeName: 'GSI1PK', KeyType: 'HASH' },
-        { AttributeName: 'GSI1SK', KeyType: 'RANGE' },
-      ],
-      Projection: { ProjectionType: 'ALL' },
-    },
-  ],
-})
+  // Table 2: Auth.js (@auth/dynamodb-adapter): pk/sk + GSI1, TTL on `expires`
+  await ensureTable({
+    TableName: AUTH,
+    BillingMode: 'PAY_PER_REQUEST',
+    AttributeDefinitions: [
+      { AttributeName: 'pk', AttributeType: S },
+      { AttributeName: 'sk', AttributeType: S },
+      { AttributeName: 'GSI1PK', AttributeType: S },
+      { AttributeName: 'GSI1SK', AttributeType: S },
+    ],
+    KeySchema: [
+      { AttributeName: 'pk', KeyType: 'HASH' },
+      { AttributeName: 'sk', KeyType: 'RANGE' },
+    ],
+    GlobalSecondaryIndexes: [
+      {
+        IndexName: 'GSI1',
+        KeySchema: [
+          { AttributeName: 'GSI1PK', KeyType: 'HASH' },
+          { AttributeName: 'GSI1SK', KeyType: 'RANGE' },
+        ],
+        Projection: { ProjectionType: 'ALL' },
+      },
+    ],
+  })
 
-await new Promise((r) => setTimeout(r, 1500)) // let tables become ACTIVE
-await ensureTtl(MAIN, 'ttl')
-await ensureTtl(AUTH, 'expires')
+  await new Promise((r) => setTimeout(r, 1500)) // let tables become ACTIVE
+  await ensureTtl(MAIN, 'ttl')
+  await ensureTtl(AUTH, 'expires')
 
-await client.send(new DescribeTableCommand({ TableName: MAIN }))
-console.log('[db-setup] done.')
+  await client.send(new DescribeTableCommand({ TableName: MAIN }))
+  console.log('[db-setup] done.')
 }
 
 main().catch((e) => {

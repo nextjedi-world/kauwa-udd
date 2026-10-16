@@ -104,9 +104,7 @@ export function scoreRound(
   players: RoomPlayer[],
 ): PlayerRoundResult[] {
   // Correct releases on a flier, ordered by serverTs (fastest first) -> ranks 1..3.
-  const releasers = clicks
-    .filter((c) => c.released)
-    .sort((a, b) => a.serverTs - b.serverTs)
+  const releasers = clicks.filter((c) => c.released).sort((a, b) => a.serverTs - b.serverTs)
   const rankOf = new Map<string, number>()
   if (flies) releasers.forEach((c, i) => rankOf.set(c.playerId, i + 1))
 
@@ -124,7 +122,9 @@ export function scoreRound(
 
       if (flies) {
         if (released) {
-          reactionMs = click ? Math.max(0, click.serverTs - (click.serverTs - click.clientTs)) : null
+          reactionMs = click
+            ? Math.max(0, click.serverTs - (click.serverTs - click.clientTs))
+            : null
           const r = rankOf.get(p.id) ?? 99
           rank = r <= 3 ? r : null
           points = r <= 3 ? SCORING.FLY_RANK_BONUS[r - 1] : SCORING.FLY_FLAT

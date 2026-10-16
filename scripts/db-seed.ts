@@ -37,9 +37,7 @@ async function main() {
   await recordScores(demoPlayers, 'daily', 'global')
   await recordScores(demoPlayers, 'weekly', 'global')
   await recordScores(demoPlayers, 'all', 'global')
-  console.log(
-    `[db-seed] wrote ${demoPlayers.length} demo leaderboard entries (daily/weekly/all)`,
-  )
+  console.log(`[db-seed] wrote ${demoPlayers.length} demo leaderboard entries (daily/weekly/all)`)
   console.log('[db-seed] done. (re-running adds to demo scores — wipe table to reset)')
 }
 

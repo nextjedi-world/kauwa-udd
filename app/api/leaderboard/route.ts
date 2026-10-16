@@ -28,7 +28,10 @@ export async function GET(req: Request) {
     n: url.searchParams.get('n') ?? undefined,
   })
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid query', issues: parsed.error.issues }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Invalid query', issues: parsed.error.issues },
+      { status: 400 },
+    )
   }
 
   const { period, scope, code, playerId, n } = parsed.data

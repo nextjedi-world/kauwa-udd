@@ -174,7 +174,12 @@ export function LobbyScreen({
           )}
           title={connected ? 'Realtime connected' : 'Connecting…'}
         >
-          <span className={cn('size-2 rounded-full', connected ? 'bg-success' : 'bg-muted-foreground/50')} />
+          <span
+            className={cn(
+              'size-2 rounded-full',
+              connected ? 'bg-success' : 'bg-muted-foreground/50',
+            )}
+          />
           {connected ? 'Live' : '…'}
         </div>
       </header>
@@ -202,7 +207,9 @@ export function LobbyScreen({
           </div>
         </div>
         <p className="mt-2 text-xs font-medium opacity-75">
-          {copied ? 'Invite copied to clipboard!' : toast ?? 'Tap copy or share to invite friends.'}
+          {copied
+            ? 'Invite copied to clipboard!'
+            : (toast ?? 'Tap copy or share to invite friends.')}
         </p>
       </section>
 
@@ -314,14 +321,20 @@ export function LobbyScreen({
             />
           </div>
           {settings.mode === 'elimination' && (
-            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mt-3">
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-3"
+            >
               <p className="mb-2 text-sm text-muted-foreground">Eliminate lowest every</p>
               <div className="flex gap-2">
                 {([3, 5, 10] as const).map((n) => (
                   <button
                     key={n}
                     disabled={!isHost}
-                    onClick={() => onChangeSettings({ eliminationInterval: n as EliminationInterval })}
+                    onClick={() =>
+                      onChangeSettings({ eliminationInterval: n as EliminationInterval })
+                    }
                     className={cn(
                       'flex-1 rounded-2xl border py-2.5 text-sm font-bold transition-colors disabled:cursor-not-allowed',
                       settings.eliminationInterval === n
@@ -341,7 +354,8 @@ export function LobbyScreen({
         <div className="rounded-3xl border border-border bg-card p-4 shadow-sm">
           <label className="font-semibold">Announcements</label>
           <p className="mb-3 mt-0.5 text-sm text-muted-foreground">
-            Voice speaks the word; the image stays hidden until the last moment. Visual shows it right away.
+            Voice speaks the word; the image stays hidden until the last moment. Visual shows it
+            right away.
           </p>
           <Segmented
             value={settings.announce}
@@ -421,7 +435,9 @@ export function LobbyScreen({
             size="lg"
             disabled={starting || onlineCount < 1}
             onClick={onStart}
-            icon={starting ? <Loader2 className="size-6 animate-spin" /> : <Rocket className="size-6" />}
+            icon={
+              starting ? <Loader2 className="size-6 animate-spin" /> : <Rocket className="size-6" />
+            }
           >
             {starting ? 'Starting…' : 'Start Game'}
           </TactileButton>

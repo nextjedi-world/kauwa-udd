@@ -343,9 +343,7 @@ export async function clearReady(code: string): Promise<void> {
 
 /** A player leaves the room — delete their PLAYER# item, return remaining players. */
 export async function leaveRoom(code: string, playerId: string): Promise<RoomPlayer[]> {
-  await ddb.send(
-    new DeleteCommand({ TableName: TABLE, Key: keys.player(code, playerId) }),
-  )
+  await ddb.send(new DeleteCommand({ TableName: TABLE, Key: keys.player(code, playerId) }))
   return listPlayers(code)
 }
 
@@ -354,7 +352,9 @@ export async function leaveRoom(code: string, playerId: string): Promise<RoomPla
  * status -> 'lobby', every player score=0 & eliminated=false, and all ephemeral
  * round/click/ready items deleted. Returns the room + fresh player list.
  */
-export async function resetRoom(code: string): Promise<{ room: Room | null; players: RoomPlayer[] }> {
+export async function resetRoom(
+  code: string,
+): Promise<{ room: Room | null; players: RoomPlayer[] }> {
   // Pull the whole room partition once so we can split players (update) from
   // ephemeral round/click/ready items (delete).
   const res = await ddb.send(
@@ -542,19 +542,21 @@ export async function updateUserStats(userId: string, delta: UserStatsDelta): Pr
   }
 
   if (typeof delta.score === 'number') {
-    await ddb.send(
-      new UpdateCommand({
-        TableName: TABLE,
-        Key: keys.userStats(userId),
-        UpdateExpression: 'SET #b = :s',
-        ConditionExpression: 'attribute_not_exists(#b) OR #b < :s',
-        ExpressionAttributeNames: { '#b': 'bestScore' },
-        ExpressionAttributeValues: { ':s': delta.score },
-      }),
-    ).catch((e: unknown) => {
-      // Conditional check failed just means the existing best is higher — ignore.
-      if ((e as { name?: string }).name !== 'ConditionalCheckFailedException') throw e
-    })
+    await ddb
+      .send(
+        new UpdateCommand({
+          TableName: TABLE,
+          Key: keys.userStats(userId),
+          UpdateExpression: 'SET #b = :s',
+          ConditionExpression: 'attribute_not_exists(#b) OR #b < :s',
+          ExpressionAttributeNames: { '#b': 'bestScore' },
+          ExpressionAttributeValues: { ':s': delta.score },
+        }),
+      )
+      .catch((e: unknown) => {
+        // Conditional check failed just means the existing best is higher — ignore.
+        if ((e as { name?: string }).name !== 'ConditionalCheckFailedException') throw e
+      })
   }
 }
 

@@ -182,7 +182,8 @@
   }
   /* Soft sky gradient used across screens */
   .bg-sky {
-    background-image: radial-gradient(
+    background-image:
+      radial-gradient(
         110% 80% at 50% -10%,
         color-mix(in oklch, var(--primary) 22%, transparent),
         transparent 60%

@@ -1,33 +1,34 @@
-# kauwa-udd
+# Kauwa Udd
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+A party game: hold, release, react, last bird wins the sky. Next.js 16 on Vercel, DynamoDB (single
+table), Ably realtime, Vercel Workflow for rounds, Auth.js guest login. Live at https://kauwa-udd.vercel.app.
 
-## Built with v0
-
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
-
-[Continue working on v0 →](https://v0.app/chat/projects/prj_uFIc5MrVvnrPLElYEiOn9fwEpsjX)
-
-## Getting Started
-
-First, run the development server:
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+pnpm install            # or: make setup
+cp .env.example .env.local   # fill ABLY_API_KEY and AUTH_SECRET
+pnpm db:local           # DynamoDB Local on :8000 (keep running)
+pnpm db:setup && pnpm db:seed
+pnpm dev                # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Checks
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`make verify` runs lint, Prettier check, typecheck, Vitest and `next build`, the same as CI.
+Git hooks (lefthook) are installed by `make setup`.
 
-## Learn More
+## Environment
 
-To learn more, take a look at the following resources:
+Names only live in [.env.example](./.env.example). Production uses Vercel OIDC to reach DynamoDB
+(`AWS_ROLE_ARN`), so no AWS keys are stored. Set `SENTRY_DSN` to enable error reporting (no-op when unset).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+## Deploy
+
+Vercel's Git integration deploys `main` to production and each pull request to a preview. Set env vars
+in the Vercel project, not in git.
+
+## Docs
+
+[API](./docs/API.md), [schema](./docs/SCHEMA.md), [QA report](./docs/QA-REPORT.md),
+[submission copy](./docs/SUBMISSION.md). Agent instructions: [CLAUDE.md](./CLAUDE.md).

@@ -1,0 +1,37 @@
+# PR title must be a conventional commit and the body must reference a Linear issue.
+# Inlined from nextjedi/platform commitlint.yml (private repo, cannot be called from a public one).
+name: commitlint
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-title:
+    name: conventional PR title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check conventional commit title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "PR title: $PR_TITLE"
+          if ! printf '%s\n' "$PR_TITLE" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: .+'; then
+            echo "::error title=PR title::The PR title must be a conventional commit, e.g. 'fix: handle empty room'."
+            exit 1
+          fi
+      - name: Check Linear reference
+        if: github.event.pull_request.user.type != 'Bot'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if printf '%s\n' "$PR_BODY" | grep -Eiq '(fixes|closes|resolves|refs|part of)[[:space:]:]+NEX-[0-9]+'; then
+            echo "Linear reference found."
+          else
+            echo "::error title=Linear reference::Add a line like 'Fixes NEX-123' to the PR body."
+            exit 1
+          fi

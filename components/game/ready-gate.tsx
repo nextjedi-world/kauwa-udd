@@ -19,12 +19,7 @@ export interface ReadyGateProps {
   onReady: () => void
 }
 
-export function ReadyGate({
-  readyIds,
-  total,
-  playerId,
-  onReady,
-}: ReadyGateProps) {
+export function ReadyGate({ readyIds, total, playerId, onReady }: ReadyGateProps) {
   // Local visual countdown (clock-skew-proof). The server enforces the real 10s
   // timeout and dismisses this gate via started=true; this is display only.
   const targetRef = useRef<number>(Date.now() + 10000)

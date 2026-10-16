@@ -63,7 +63,13 @@ export function ResultsScreen(props: ResultsScreenProps) {
         }
         const ranked = [...parsed.scores]
           .sort((a, b) => b.score - a.score)
-          .map((s, i) => ({ place: i + 1, name: s.name, avatar: s.avatar, score: s.score, isYou: s.isYou }))
+          .map((s, i) => ({
+            place: i + 1,
+            name: s.name,
+            avatar: s.avatar,
+            score: s.score,
+            isYou: s.isYou,
+          }))
         setSolo({ scores: ranked })
       }
     } catch {
@@ -184,7 +190,12 @@ export function ResultsScreen(props: ResultsScreenProps) {
               <motion.div
                 initial={{ y: 30, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: renderIdx * 0.1 + 0.1, type: 'spring', stiffness: 240, damping: 16 }}
+                transition={{
+                  delay: renderIdx * 0.1 + 0.1,
+                  type: 'spring',
+                  stiffness: 240,
+                  damping: 16,
+                }}
                 className="relative mb-2"
               >
                 {p.place === 1 && (
@@ -274,7 +285,13 @@ export function ResultsScreen(props: ResultsScreenProps) {
           variant="surface"
           size="lg"
           className="flex-1"
-          icon={shared ? <Check className="size-6 text-success" /> : <Share2 className="size-6 text-primary" />}
+          icon={
+            shared ? (
+              <Check className="size-6 text-success" />
+            ) : (
+              <Share2 className="size-6 text-primary" />
+            )
+          }
           onClick={onShare}
         >
           {shared ? 'Copied!' : 'Share'}
@@ -290,7 +307,13 @@ export function ResultsScreen(props: ResultsScreenProps) {
             {props.playAgainLabel ?? 'New Game'}
           </TactileButton>
         ) : (
-          <TactileLink href="/game" variant="primary" size="lg" className="flex-1" icon={<RotateCw className="size-6" />}>
+          <TactileLink
+            href="/game"
+            variant="primary"
+            size="lg"
+            className="flex-1"
+            icon={<RotateCw className="size-6" />}
+          >
             Play Again
           </TactileLink>
         )}

@@ -1,0 +1,42 @@
+name: ci
+
+# Public repo: the reusable workflow in the private nextjedi/platform repo cannot be called from
+# here, so the steps of ci-web.yml are inlined. Keep in step with platform's ci-web.yml.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify (web)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install
+        run: make setup
+      - name: make verify
+        run: make verify
+        env:
+          CI: 'true'
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-web
+          path: coverage/
+          if-no-files-found: ignore
