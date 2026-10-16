@@ -1,5 +1,5 @@
 # PR title must be a conventional commit and the body must reference a Linear issue.
-# Inlined from nextjedi/platform commitlint.yml (private repo, cannot be called from a public one).
+# Inlined from nextjedi-world/platform commitlint.yml (private repo, cannot be called from a public one).
 name: commitlint
 
 on:
